@@ -21,6 +21,8 @@ public class HireKarloDbContext : DbContext
     public DbSet<LearningPath> LearningPaths => Set<LearningPath>();
     public DbSet<LearningModule> LearningModules => Set<LearningModule>();
     public DbSet<QuizAttempt> QuizAttempts => Set<QuizAttempt>();
+    public DbSet<VectorDocument> VectorDocuments => Set<VectorDocument>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -19,8 +19,11 @@ public class Application : BaseEntity
     public string? StageHistory { get; set; } // JSON array of stage changes with timestamps
     public bool UsedReferral { get; set; }
     public Guid? ReferralContactId { get; set; }
+    public Guid? ReferredById { get; set; } // Contact who referred this application
     public string? CoverLetter { get; set; }
+    public string? DraftedCoverLetter { get; set; } // AI-drafted cover letter for review
     public string? DraftedMessage { get; set; } // Auto-drafted application message
+    public DateTime? DraftGeneratedAt { get; set; } // When draft was generated
     public int? AtsScore { get; set; } // ATS score at time of application
     public string? AtsReport { get; set; } // JSON ATS analysis report
 

@@ -104,7 +104,8 @@ if (useAzure)
 }
 else
 {
-    // FREE alternatives: Groq + HuggingFace + In-Memory Vector Store
+    // FREE alternatives: Groq + HuggingFace + PostgreSQL Vector Store
+    // PostgresVectorStore persists embeddings across Render cold starts
     builder.Services.Configure<GroqSettings>(
         builder.Configuration.GetSection("Groq"));
     builder.Services.Configure<HuggingFaceSettings>(
@@ -112,14 +113,14 @@ else
 
     builder.Services.AddHttpClient<IOpenAIService, GroqService>();
     builder.Services.AddHttpClient<IEmbeddingService, HuggingFaceEmbeddingService>();
-    builder.Services.AddSingleton<IVectorStoreService, InMemoryVectorStore>();
+    builder.Services.AddScoped<IVectorStoreService, PostgresVectorStore>();
 }
 
 builder.Services.Configure<JobFetchSettings>(
     builder.Configuration.GetSection("JobFetch"));
 
-builder.Services.AddSingleton<RAGOrchestrator>();
-builder.Services.AddSingleton<IAdvancedAIService, AdvancedAIService>();
+builder.Services.AddScoped<RAGOrchestrator>();
+builder.Services.AddScoped<IAdvancedAIService, AdvancedAIService>();
 
 // Add Application Services
 builder.Services.AddScoped<IAtsScorer, AtsScorer>();
