@@ -33,6 +33,7 @@ public interface IJobListingRepository : IRepository<JobListing>
     Task<IReadOnlyList<JobListing>> GetActiveJobsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JobListing>> SearchAsync(string? query, string? location, bool? remote, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JobListing>> GetByCompanyAsync(string company, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<JobListing>> GetByCompanyAsync(string company, int limit, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JobListing>> GetRecentJobsAsync(int days, int limit, CancellationToken cancellationToken = default);
 }
 

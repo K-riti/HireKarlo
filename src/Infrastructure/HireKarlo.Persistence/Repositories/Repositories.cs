@@ -215,6 +215,15 @@ public class JobListingRepository : IJobListingRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<JobListing>> GetByCompanyAsync(string company, int limit, CancellationToken cancellationToken = default)
+    {
+        return await _context.JobListings
+            .Where(j => j.Company.ToLower().Contains(company.ToLower()))
+            .OrderByDescending(j => j.PostedDate)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<JobListing> AddAsync(JobListing entity, CancellationToken cancellationToken = default)
     {
         await _context.JobListings.AddAsync(entity, cancellationToken);
