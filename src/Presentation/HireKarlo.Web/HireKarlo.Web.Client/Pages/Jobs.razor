@@ -1,0 +1,215 @@
+@page "/jobs"
+@inject ApiClient Api
+
+<PageTitle>Job Search - HireKarlo</PageTitle>
+
+<div class="jobs-page">
+    <div class="jobs-header">
+        <h1>🎯 Find Your Dream Job</h1>
+        <p>Discover opportunities matched to your skills</p>
+    </div>
+
+    <div class="search-section">
+        <div class="search-bar">
+            <input type="text" @bind="searchQuery" @bind:event="oninput" placeholder="Job title, skills, or company..." />
+            <input type="text" @bind="location" placeholder="Location" />
+            <label class="remote-toggle">
+                <input type="checkbox" @bind="remoteOnly" />
+                <span>Remote only</span>
+            </label>
+            <button class="btn btn-primary" @onclick="SearchJobs">Search</button>
+        </div>
+    </div>
+
+    <div class="jobs-content">
+        <div class="filters-sidebar">
+            <h3>Filters</h3>
+            <div class="filter-group">
+                <label>Experience Level</label>
+                <select @bind="experienceLevel">
+                    <option value="">All Levels</option>
+                    <option value="entry">Entry Level</option>
+                    <option value="mid">Mid Level</option>
+                    <option value="senior">Senior</option>
+                    <option value="lead">Lead/Principal</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Job Type</label>
+                <select @bind="jobType">
+                    <option value="">All Types</option>
+                    <option value="fulltime">Full-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="parttime">Part-time</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Posted Within</label>
+                <select @bind="postedWithin">
+                    <option value="7">Last 7 days</option>
+                    <option value="14">Last 14 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="">Any time</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="jobs-list">
+            @if (isLoading)
+            {
+                <div class="loading">Searching jobs...</div>
+            }
+            else if (jobs.Any())
+            {
+                <div class="results-header">
+                    <span>@jobs.Count jobs found</span>
+                    <select @bind="sortBy">
+                        <option value="relevance">Most Relevant</option>
+                        <option value="date">Most Recent</option>
+                        <option value="match">Best Match</option>
+                    </select>
+                </div>
+
+                @foreach (var job in jobs)
+                {
+                    <div class="job-card @(selectedJob?.Id == job.Id ? "selected" : "")" @onclick="() => SelectJob(job)">
+                        <div class="job-header">
+                            <div class="company-logo">@job.Company[0]</div>
+                            <div class="job-info">
+                                <h3>@job.Title</h3>
+                                <p class="company">@job.Company</p>
+                                <p class="location">📍 @job.Location @(job.IsRemote ? "• Remote" : "")</p>
+                            </div>
+                            @if (job.MatchScore > 0)
+                            {
+                                <div class="match-score @GetMatchClass(job.MatchScore)">@job.MatchScore% Match</div>
+                            }
+                        </div>
+                        <div class="job-tags">
+                            @foreach (var skill in job.Skills.Take(4))
+                            {
+                                <span class="tag">@skill</span>
+                            }
+                        </div>
+                        <div class="job-footer">
+                            <span class="posted">@GetPostedText(job.PostedDate)</span>
+                            <button class="btn btn-small" @onclick:stopPropagation="true" @onclick="() => SaveJob(job)">
+                                @(job.IsSaved ? "★ Saved" : "☆ Save")
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-results">
+                    <span class="icon">🔍</span>
+                    <h3>No jobs found</h3>
+                    <p>Try adjusting your search or filters</p>
+                </div>
+            }
+        </div>
+
+        @if (selectedJob != null)
+        {
+            <div class="job-details">
+                <div class="details-header">
+                    <h2>@selectedJob.Title</h2>
+                    <p class="company">@selectedJob.Company</p>
+                    <p class="location">📍 @selectedJob.Location</p>
+                    @if (selectedJob.SalaryRange != null)
+                    {
+                        <p class="salary">💰 @selectedJob.SalaryRange</p>
+                    }
+                </div>
+
+                <div class="details-actions">
+                    <button class="btn btn-primary" @onclick="ApplyToJob">Apply Now</button>
+                    <button class="btn btn-secondary" @onclick="TailorResume">Tailor Resume</button>
+                </div>
+
+                <div class="details-section">
+                    <h4>Job Description</h4>
+                    <p>@selectedJob.Description</p>
+                </div>
+
+                <div class="details-section">
+                    <h4>Required Skills</h4>
+                    <div class="skills-list">
+                        @foreach (var skill in selectedJob.Skills)
+                        {
+                            <span class="skill-tag">@skill</span>
+                        }
+                    </div>
+                </div>
+
+                @if (selectedJob.MatchScore > 0)
+                {
+                    <div class="match-analysis">
+                        <h4>Match Analysis</h4>
+                        <div class="match-bar">
+                            <div class="match-fill" style="width: @(selectedJob.MatchScore)%"></div>
+                        </div>
+                        <p>@selectedJob.MatchScore% match with your profile</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<JobDto> jobs = new();
+    private JobDto? selectedJob;
+    private string searchQuery = "";
+    private string location = "";
+    private bool remoteOnly;
+    private string experienceLevel = "";
+    private string jobType = "";
+    private string postedWithin = "7";
+    private string sortBy = "relevance";
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SearchJobs();
+    }
+
+    private async Task SearchJobs()
+    {
+        isLoading = true;
+        jobs = await Api.SearchJobsAsync(searchQuery, location, remoteOnly) ?? new List<JobDto>();
+        isLoading = false;
+    }
+
+    private void SelectJob(JobDto job)
+    {
+        selectedJob = job;
+    }
+
+    private async Task SaveJob(JobDto job)
+    {
+        job.IsSaved = !job.IsSaved;
+        // Would call API to save
+    }
+
+    private async Task ApplyToJob()
+    {
+        if (selectedJob == null) return;
+        // Navigate to application flow
+    }
+
+    private async Task TailorResume()
+    {
+        if (selectedJob == null) return;
+        // Navigate to resume tailoring
+    }
+
+    private string GetMatchClass(int score) => score >= 80 ? "high" : score >= 60 ? "medium" : "low";
+
+    private string GetPostedText(DateTime date)
+    {
+        var days = (DateTime.Now - date).Days;
+        return days == 0 ? "Today" : days == 1 ? "Yesterday" : $"{days} days ago";
+    }
+}

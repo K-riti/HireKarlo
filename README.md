@@ -1,209 +1,546 @@
-# CareerPathAI — System Architecture
+# HireKarlo — AI-Powered Career Platform
 
 An AI career copilot that analyzes your resume against target JDs, tracks a daily-refreshed feed of 90%+ matched jobs, auto-drafts tailored applications, builds a personalized 6-month roadmap, and keeps you plugged into your dream companies via referrals and interview-experience digests.
 
 ---
 
-## 1. Architecture Diagram
+## 🏗️ System Architecture
 
-```mermaid
-graph TB
-    subgraph Client
-        WEB[Blazor Web App]
-        MOBILE[.NET MAUI App - Android/iOS<br/>shares components with Web]
-    end
-
-    subgraph Gateway
-        API[ASP.NET Core Web API<br/>Auth - JWT/OAuth, Routing, Rate Limiting]
-    end
-
-    subgraph CoreServices [Core Services - C#/.NET]
-        RESUME[Resume Service<br/>Parse, Tailor, OpenXML Generation]
-        ATS[ATS Scoring Engine]
-        TRACKER[Job Tracker - Kanban Pipeline]
-        ROADMAP[Roadmap & Skill-Gap Service]
-        REFERRAL[Referral & Contact Service]
-        LIOPT[LinkedIn Profile Optimizer]
-        PROJREC[Project Gap Recommender]
-    end
-
-    subgraph AIServices [AI / ML Services - Python FastAPI]
-        MATCH[Matching Engine<br/>Resume-JD Semantic Scoring]
-        NLP[NLP Pipeline<br/>Keyword & Entity Extraction]
-        MOCKI[AI Mock Interview Simulator]
-        PREDICT[Application Outcome Predictor]
-    end
-
-    subgraph AILayer [AI Layer]
-        LLM[Azure OpenAI - GPT]
-        EMBED[Embedding Model]
-        VSTORE[(Vector Store<br/>Azure AI Search / Qdrant)]
-    end
-
-    subgraph Ingestion [Scheduled Data Ingestion - Azure Functions]
-        JOBFETCH[Job Fetch Worker<br/>Adzuna, RemoteOK, Arbeitnow,<br/>Greenhouse/Lever public job APIs,<br/>official career-page RSS/sitemaps]
-        INTFETCH[Interview-Experience Worker<br/>Web Search API query:<br/>site:reddit.com OR site:teamblind.com<br/>OR site:leetcode.com/discuss + company]
-        TIMER[Daily/Weekly Timer Triggers]
-    end
-
-    subgraph Storage
-        SQL[(Azure SQL / PostgreSQL<br/>Users, Jobs, Matches, Applications)]
-        BLOB[(Blob Storage<br/>Resume files, generated docs)]
-    end
-
-    subgraph Notify [Notification Layer]
-        EMAIL[SendGrid / Azure Communication Services]
-        PUSH[Mobile Push Notifications]
-    end
-
-    WEB --> API
-    MOBILE --> API
-    API --> RESUME
-    API --> ATS
-    API --> TRACKER
-    API --> ROADMAP
-    API --> REFERRAL
-    API --> LIOPT
-    API --> PROJREC
-    API --> MATCH
-    API --> MOCKI
-
-    RESUME --> LLM
-    RESUME --> BLOB
-    ATS --> LLM
-    ATS --> NLP
-    LIOPT --> LLM
-    ROADMAP --> LLM
-    PROJREC --> LLM
-    MOCKI --> LLM
-    PREDICT --> SQL
-
-    MATCH --> EMBED
-    MATCH --> VSTORE
-    MATCH --> SQL
-    NLP --> VSTORE
-
-    TIMER --> JOBFETCH
-    TIMER --> INTFETCH
-    JOBFETCH --> MATCH
-    JOBFETCH --> SQL
-    INTFETCH --> LLM
-    INTFETCH --> SQL
-
-    MATCH -->|90%+ match found| EMAIL
-    MATCH -->|90%+ match found| PUSH
-    TRACKER -->|status change reminder| PUSH
-    INTFETCH -->|weekly digest| EMAIL
-    REFERRAL -->|draft ready| EMAIL
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              HireKarlo Platform                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                   │
+│  ┌────────────────────────┐      ┌─────────────────────────────────────────┐     │
+│  │   PRESENTATION LAYER   │      │           CORE DOMAIN LAYER             │     │
+│  │                        │      │                                         │     │
+│  │  ┌──────────────────┐  │      │  ┌─────────────┐  ┌─────────────────┐   │     │
+│  │  │  Blazor Web App  │  │      │  │   Entities  │  │  Value Objects  │   │     │
+│  │  │    (PWA Ready)   │  │      │  │  • User     │  │  • MatchReport  │   │     │
+│  │  │  • Dashboard     │  │      │  │  • Resume   │  │  • GapAnalysis  │   │     │
+│  │  │  • Resumes       │  │      │  │  • Job      │  │  • AtsScore     │   │     │
+│  │  │  • Jobs          │◄────────►  │  • Match    │  │  • Skills       │   │     │
+│  │  │  • Mock Interview│  │      │  │  • Contact  │  │  • Roadmap      │   │     │
+│  │  │  • Learning      │  │      │  │  • Roadmap  │  │  • Interview    │   │     │
+│  │  │  • AI Chat       │  │      │  │  • Digest   │  │    Questions    │   │     │
+│  │  │  • LinkedIn      │  │      │  └─────────────┘  └─────────────────┘   │     │
+│  │  └──────────────────┘  │      │                                         │     │
+│  │                        │      │  ┌─────────────────────────────────────┐│     │
+│  │  ┌──────────────────┐  │      │  │      APPLICATION INTERFACES        ││     │
+│  │  │   REST API       │  │      │  │  • IOpenAIService                  ││     │
+│  │  │  (ASP.NET Core)  │  │      │  │  • IEmbeddingService               ││     │
+│  │  │  • AuthController│  │      │  │  • IVectorStoreService             ││     │
+│  │  │  • ResumeController        │  │  • IResumeParser/Generator         ││     │
+│  │  │  • JobController │  │      │  │  • IAtsScorer                      ││     │
+│  │  │  • AdvancedAI    │  │      │  │  • ILearningPathService            ││     │
+│  │  │  • ChatController│  │      │  │  • IMockInterviewService           ││     │
+│  │  │  • LearnController         │  │  • ILinkedInOptimizer              ││     │
+│  │  └──────────────────┘  │      │  └─────────────────────────────────────┘│     │
+│  └────────────────────────┘      └─────────────────────────────────────────┘     │
+│                                                                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                             INFRASTRUCTURE LAYER                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐ │
+│  │                           AI / RAG Services                                  │ │
+│  │  ┌───────────────────┐  ┌──────────────────┐  ┌───────────────────────────┐ │ │
+│  │  │  Azure OpenAI     │  │  Embedding       │  │   Azure AI Search         │ │ │
+│  │  │  (GPT-4/GPT-4o)   │  │  Service         │  │   (Vector Store)          │ │ │
+│  │  │  • Completions    │  │  • ada-002       │  │   • Semantic Search       │ │ │
+│  │  │  • JSON Mode      │  │  • Vectorization │  │   • HNSW Index            │ │ │
+│  │  │  • Streaming      │  │  • Similarity    │  │   • Hybrid Retrieval      │ │ │
+│  │  └───────────────────┘  └──────────────────┘  └───────────────────────────┘ │ │
+│  │                                                                              │ │
+│  │  ┌─────────────────────────────────────────────────────────────────────────┐│ │
+│  │  │                         RAG Orchestrator                                 ││ │
+│  │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  ││ │
+│  │  │  │ Semantic Match  │  │ Interview Digest│  │   Project Recommender   │  ││ │
+│  │  │  │ • Resume→JD     │  │ • RAG Retrieval │  │   • Skill Gap → Project │  ││ │
+│  │  │  │ • Gap Analysis  │  │ • LLM Summary   │  │   • Personalized Ideas  │  ││ │
+│  │  │  │ • LLM Reasoning │  │ • Grounding     │  │   • Impact Scoring      │  ││ │
+│  │  │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  ││ │
+│  │  └─────────────────────────────────────────────────────────────────────────┘│ │
+│  │                                                                              │ │
+│  │  ┌─────────────────────────────────────────────────────────────────────────┐│ │
+│  │  │                      Advanced AI Service                                 ││ │
+│  │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  ││ │
+│  │  │  │ Outcome         │  │ Explainable ATS │  │ Trajectory Simulator    │  ││ │
+│  │  │  │ Predictor       │  │ • Why scores    │  │ • Month-by-month plan   │  ││ │
+│  │  │  │ • History-based │  │ • Issue fixes   │  │ • Milestone tracking    │  ││ │
+│  │  │  │ • Pattern learn │  │ • Quick wins    │  │ • Risk analysis         │  ││ │
+│  │  │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  ││ │
+│  │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  ││ │
+│  │  │  │ Keyword Radar   │  │ Career Roadmap  │  │ Resume Tailoring        │  ││ │
+│  │  │  │ • Trend analysis│  │ • 6-month plan  │  │ • JD-specific rewrites  │  ││ │
+│  │  │  │ • Coverage %    │  │ • Weekly sched  │  │ • Before/after score    │  ││ │
+│  │  │  │ • Actions       │  │ • Resources     │  │ • Keywords added        │  ││ │
+│  │  │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  ││ │
+│  │  └─────────────────────────────────────────────────────────────────────────┘│ │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                   │
+│  ┌───────────────────┐  ┌──────────────────┐  ┌──────────────────────────────┐   │
+│  │   Persistence     │  │  External APIs   │  │    Azure Functions           │   │
+│  │  • Azure SQL      │  │  • Adzuna Jobs   │  │    (Job Ingestion)           │   │
+│  │  • EF Core        │  │  • SendGrid      │  │    • Timer Triggers          │   │
+│  │  • Repositories   │  │  • Blob Storage  │  │    • Daily Job Refresh       │   │
+│  └───────────────────┘  └──────────────────┘  └──────────────────────────────┘   │
+│                                                                                   │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Full Feature List
+## 🔄 Data Flow Diagrams
 
-### Core (application engine)
-- Resume upload/parsing (PDF/DOCX)
-- Resume-to-JD gap analysis (semantic, not just keyword match)
-- Auto-tailored resume version generator per JD (OpenXML/docx output)
-- ATS Scoring Engine (title match, keyword density, formatting, section detection)
-- Daily job-refresh pipeline, 90%+ match alerting
-- Auto-draft application + one-click review-and-submit (no unauthorized auto-submission)
+### Resume Analysis & ATS Scoring Flow
 
-### Tracking & Organization
-- **Job Tracker** — Kanban pipeline: Saved → Applied → OA → Interview → Offer → Rejected, with per-stage notes and dates
-- **Dream Company Checklist** — target companies, visa-sponsor tag, application status, priority ranking
-- **Referral & Contact Finder** — draft personalized outreach messages for contacts the user identifies via their own LinkedIn network/alumni tool (see compliance note in §5)
+```
+┌──────────┐    ┌───────────────┐    ┌──────────────┐    ┌──────────────┐
+│  Upload  │───►│ Resume Parser │───►│ ATS Scorer   │───►│ Match Report │
+│  Resume  │    │ (PDF/DOCX)    │    │              │    │              │
+└──────────┘    └───────────────┘    └──────────────┘    └──────────────┘
+					   │                     │                  │
+					   ▼                     ▼                  ▼
+			   ┌───────────────┐    ┌──────────────┐    ┌──────────────┐
+			   │ Extract Text  │    │ Keyword      │    │ Gap Analysis │
+			   │ & Structure   │    │ Extraction   │    │ • Missing    │
+			   └───────────────┘    │ via LLM      │    │ • Matching   │
+					   │            └──────────────┘    │ • Suggestions│
+					   ▼                   │            └──────────────┘
+			   ┌───────────────┐           │
+			   │ Generate      │◄──────────┘
+			   │ Embeddings    │
+			   │ (ada-002)     │
+			   └───────────────┘
+					   │
+					   ▼
+			   ┌───────────────┐
+			   │ Store in      │
+			   │ Vector Index  │
+			   └───────────────┘
+```
 
-### Growth & Learning
-- 6-month roadmap generator with checklist to-dos, linking out to curated DSA sheets (Striver's, NeetCode) and YouTube playlists — links only, no content hosting (copyright-safe)
-- **Project Gap Recommender** — analyzes skill gaps vs. target JDs and suggests portfolio projects to close them (this is literally what we did manually for you — now productized)
-- Weekly **Interview-Experience Newsletter** — LLM-summarized digest of publicly indexed posts about target companies, sourced via search API across Reddit, Blind, LeetCode Discuss, Glassdoor, Quora, with links back to original source (not full-text scraping)
+### RAG-Powered Interview Question Generation
 
-### "Wow" AI Features
-- **AI Mock Interview Simulator** — voice or text-based, generates company/role-specific questions, gives structured feedback (STAR-method scoring, technical depth check)
-- **Application Outcome Predictor** — model trained on the user's own historical application data (stage reached vs. features like match %, resume version, referral used) to surface "what's actually moving the needle for you"
-- **LinkedIn Profile Optimizer** — paste-in current headline/about/experience → AI rewrite suggestions scored against target-role keyword density
-- **Explainable ATS Score** — not just a number; shows *why* (missing keywords, title mismatch, formatting flags) same way we've been doing manually
-- **Keyword Radar** — visual gap chart: JD-required keywords vs. resume-present keywords, updated live as user edits
-- **Skill Trajectory Simulator** — "if you learn X, your match rate against saved dream-company JDs increases by Y%"
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        RAG Interview Question Flow                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. QUERY FORMULATION                 2. VECTOR RETRIEVAL                   │
+│  ┌──────────────────────┐             ┌──────────────────────┐              │
+│  │ User: "Google SWE    │────────────►│ Azure AI Search      │              │
+│  │ behavioral questions"│             │ • Embed query        │              │
+│  └──────────────────────┘             │ • HNSW search        │              │
+│                                       │ • Top-K results      │              │
+│                                       └──────────────────────┘              │
+│                                                  │                           │
+│                                                  ▼                           │
+│  3. CONTEXT RETRIEVAL                 ┌──────────────────────┐              │
+│  ┌──────────────────────┐             │ Retrieved Documents  │              │
+│  │ Reddit experiences   │◄────────────│ • Score > 0.5        │              │
+│  │ LeetCode discussion  │             │ • Ranked by relevance│              │
+│  │ Glassdoor reviews    │             └──────────────────────┘              │
+│  │ (via Bing Search API)│                                                   │
+│  └──────────────────────┘                                                   │
+│           │                                                                  │
+│           ▼                                                                  │
+│  4. GROUNDED GENERATION               5. OUTPUT                             │
+│  ┌──────────────────────┐             ┌──────────────────────┐              │
+│  │ Azure OpenAI (GPT-4) │────────────►│ Questions with:      │              │
+│  │ • System prompt with │             │ • Source attribution │              │
+│  │   retrieved context  │             │ • Difficulty level   │              │
+│  │ • "Generate questions│             │ • Sample answers     │              │
+│  │   ONLY from context" │             │ • Follow-up tips     │              │
+│  │ • Grounding check    │             │ • IsGrounded flag    │              │
+│  └──────────────────────┘             └──────────────────────┘              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Application Outcome Prediction Flow
+
+```
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────────────┐
+│ User's Historical│───►│ Pattern Analysis │───►│ Prediction Model         │
+│ Applications     │    │                  │    │                          │
+│ • Interview rate │    │ • Interview %    │    │ ┌──────────────────────┐ │
+│ • Offer rate     │    │ • Offer %        │    │ │ Current Application  │ │
+│ • Response times │    │ • Avg response   │    │ │ • Resume text        │ │
+│ • Job types      │    │ • Success types  │    │ │ • JD text            │ │
+│ • Outcomes       │    │ • Weak areas     │    │ │ • Semantic score     │ │
+└──────────────────┘    └──────────────────┘    │ └──────────────────────┘ │
+												│            │             │
+												│            ▼             │
+												│ ┌──────────────────────┐ │
+												│ │ LLM Reasoning        │ │
+												│ │ (Azure OpenAI)       │ │
+												│ └──────────────────────┘ │
+												│            │             │
+												│            ▼             │
+												│ ┌──────────────────────┐ │
+												│ │ Prediction Output    │ │
+												│ │ • Success probability│ │
+												│ │ • Predicted outcome  │ │
+												│ │ • Key factors        │ │
+												│ │ • Risk factors       │ │
+												│ │ • Improvement tips   │ │
+												│ └──────────────────────┘ │
+												└──────────────────────────┘
+```
 
 ---
 
-## 3. Tech Stack
+## ✅ Implementation Status
 
-| Layer | Technology | Why |
-|---|---|---|
-| Web frontend | Blazor (Server or WASM) | C#-native, shares models/logic with backend and MAUI app |
-| Mobile app | .NET MAUI (Blazor Hybrid) | Reuses Blazor components; single Play Store + App Store codebase |
-| API Gateway | ASP.NET Core Web API | Your core strength; JWT auth, rate limiting |
-| Core services | C# / EF Core | Resume, ATS, Tracker, Roadmap, Referral, LinkedIn Optimizer |
-| AI/NLP microservice | Python (FastAPI) | Embeddings, semantic matching, NLP extraction |
-| LLM | Azure OpenAI (GPT) | Resume tailoring, gap analysis, summarization, mock interview |
-| Vector store | Azure AI Search or Qdrant | Resume-JD semantic matching |
-| Scheduled jobs | Azure Functions (Timer trigger) | Daily job fetch, weekly newsletter |
-| Database | Azure SQL / PostgreSQL | Users, jobs, matches, applications, tracker state |
-| File storage | Azure Blob Storage | Resume files, generated docx/pdf |
-| Email | SendGrid / Azure Communication Services | Match alerts, newsletter, referral drafts |
-| Auth | Azure AD B2C or IdentityServer | Your SecureGate project experience transfers directly here |
-| CI/CD | Azure DevOps / GitHub Actions | Your existing DevOps skillset |
-| Containers | Docker + Kubernetes (AKS) | Deploy each microservice independently |
-| Monitoring | Application Insights / Prometheus + Grafana | Track match pipeline health, LLM cost/latency |
+### Pure LLM Features (Azure OpenAI, no retrieval)
 
----
+| Feature | Status | API Endpoint |
+|---------|--------|--------------|
+| Resume Tailoring per JD | ✅ Implemented | `POST /api/advancedai/tailor-resume` |
+| ATS Score Explainability | ✅ Implemented | `POST /api/advancedai/explainable-ats` |
+| 6-Month Career Roadmap | ✅ Implemented | `POST /api/advancedai/career-roadmap` |
+| LinkedIn Profile Rewrite | ✅ Implemented | `POST /api/linkedin/optimize` |
+| Mock Interview Questions | ✅ Implemented | `POST /api/mockinterview/questions` |
+| Mock Interview Feedback | ✅ Implemented | `POST /api/mockinterview/evaluate` |
+| AI Career Chat Assistant | ✅ Implemented | `POST /api/chat/send` |
+| Skill Trajectory Simulation | ✅ Implemented | `POST /api/advancedai/skill-trajectory` |
+| Keyword Radar Analysis | ✅ Implemented | `POST /api/advancedai/keyword-radar` |
 
-## 4. ATS Scoring Engine (design detail)
+### RAG Features (Retrieval + Generation)
 
-Since this is the feature you understand best from our sessions together, it's worth productizing exactly what we did by hand:
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Resume-JD Semantic Matching | ✅ Implemented | Embed both → retrieve → LLM reasons over context |
+| Interview Experience Digest | ✅ Implemented | Retrieve relevant posts → LLM summarizes grounded content |
+| Project Gap Recommender | ✅ Implemented | Retrieve project ideas → LLM matches to user's gaps |
+| Contextual Interview Questions | ✅ Implemented | Retrieve real questions → LLM generates similar grounded questions |
 
-1. **Title match** — exact/fuzzy string match between resume title and JD title
-2. **Keyword extraction** — NLP pipeline (spaCy/NLTK or LLM-based) pulls hard skills, tools, and soft-skill phrases from the JD
-3. **Keyword density comparison** — resume vs. JD keyword overlap, weighted by frequency in JD
-4. **Section detection** — confirms Summary, Experience, Education, Skills sections are present and correctly labeled
-5. **Formatting checks** — flags tables, text boxes, non-standard bullet characters, multi-column layouts (the actual causes of parsing failures)
-6. **Date formatting validation** — consistent date formats in experience section
-7. **Explainability layer** — instead of a bare score, output a structured report: what's missing, what's weak, what's strong — same style as the analysis we've been giving you manually
+### Infrastructure Components
 
----
+| Component | Status | Technology |
+|-----------|--------|------------|
+| Vector Store Setup | ✅ Configured | Azure AI Search with HNSW index |
+| Embedding Pipeline | ✅ Implemented | `EmbeddingService` using text-embedding-ada-002 |
+| Azure OpenAI Integration | ✅ Implemented | `AzureOpenAIService` with GPT-4 |
+| RAG Orchestration Layer | ✅ Implemented | `RAGOrchestrator` class |
 
-## 5. Data Sourcing — What's Actually Compliant
+### Differentiating AI Features
 
-| Source | Approach | Compliance note |
-|---|---|---|
-| Job listings | Adzuna API, RemoteOK API, Arbeitnow API (all free, public) | Fully compliant, designed for this |
-| Company career pages | Greenhouse (`boards-api.greenhouse.io`) and Lever (`api.lever.co`) public job-board APIs | Many companies expose these intentionally — compliant, high-quality source |
-| LinkedIn job posts | **Not directly scraped** — LinkedIn's ToS prohibits automated scraping/auto-apply and actively bans accounts for it | Use official LinkedIn Talent/Jobs API only if you get a partnership; otherwise exclude LinkedIn from automated ingestion |
-| Interview experiences (Reddit/Blind/LeetCode/Glassdoor) | Query via a **web search API** (Bing Search API / Google Programmable Search) for public, indexed posts; store snippet + link only, LLM-summarize from the snippet | Avoids direct site scraping/ToS violations; still gets "all platforms" coverage since search engines already indexed them |
-| Referral contacts | User's own LinkedIn connections/alumni tool (native LinkedIn feature) — app only drafts the outreach message | LinkedIn's public API no longer exposes third-party connection data; this keeps the feature honest and buildable |
-| Auto-apply | **Auto-draft + notify**, never literal auto-submit | Matches what you already agreed was the right call |
+| Feature | Status | Unique Value |
+|---------|--------|--------------|
+| Application Outcome Predictor | ✅ Implemented | Trains on YOUR history—nobody else does this |
+| Explainable ATS Score | ✅ Implemented | Shows WHY, not just the number |
+| Keyword Radar | ✅ Implemented | Visual gap chart with prioritized actions |
+| Skill Trajectory Simulator | ✅ Implemented | "Learn X → match rate increases Y%" |
+| Project Gap Recommender | ✅ Implemented | Personalized project suggestions to close gaps |
 
 ---
 
-## 6. Database — Key Entities (high level)
+## 📁 Project Structure
 
-- **User** (profile, resume versions, preferences, target roles/locations)
-- **Resume** (versioned, linked to JD it was tailored for)
-- **JobListing** (source, title, company, JD text, posted date, fetched date)
-- **Match** (user ↔ job, score, gap report, status)
-- **Application** (tracker stage, dates, notes, referral used Y/N)
-- **DreamCompany** (user-defined, priority, visa-sponsor flag)
-- **Contact** (referral target, relationship, outreach status)
-- **RoadmapItem** (skill/topic, resource link, completion status)
-- **InterviewDigestEntry** (company, source link, LLM summary, published date)
+```
+HireKarlo/
+├── src/
+│   ├── Core/
+│   │   ├── HireKarlo.Domain/           # Entities, Value Objects
+│   │   │   ├── Entities/
+│   │   │   │   ├── User.cs
+│   │   │   │   ├── Resume.cs
+│   │   │   │   ├── JobListing.cs
+│   │   │   │   ├── Match.cs
+│   │   │   │   ├── Application.cs
+│   │   │   │   ├── LearningPath.cs
+│   │   │   │   └── InterviewDigestEntry.cs
+│   │   │   └── ValueObjects/
+│   │   │       ├── MatchReport.cs
+│   │   │       └── GapAnalysis.cs
+│   │   │
+│   │   ├── HireKarlo.Application/      # Interfaces, DTOs
+│   │   │   └── Interfaces/
+│   │   │       ├── AI/
+│   │   │       │   └── IAIServices.cs  # IOpenAIService, IEmbeddingService, IVectorStoreService
+│   │   │       ├── Services/
+│   │   │       │   ├── IResumeService.cs
+│   │   │       │   ├── ILearningPathService.cs
+│   │   │       │   ├── IMockInterviewService.cs
+│   │   │       │   └── ILinkedInOptimizerService.cs
+│   │   │       └── Repositories/
+│   │   │
+│   │   └── HireKarlo.Shared/           # Cross-cutting DTOs
+│   │
+│   ├── Infrastructure/
+│   │   ├── HireKarlo.Infrastructure/
+│   │   │   ├── AI/
+│   │   │   │   ├── AzureOpenAIService.cs    # GPT-4 completions
+│   │   │   │   ├── EmbeddingService.cs      # ada-002 embeddings
+│   │   │   │   ├── AzureAISearchService.cs  # Vector store
+│   │   │   │   ├── RAGOrchestrator.cs       # RAG pipeline
+│   │   │   │   └── AdvancedAIService.cs     # Advanced AI features
+│   │   │   ├── Auth/
+│   │   │   │   └── AuthService.cs           # Google/LinkedIn OAuth
+│   │   │   ├── Services/
+│   │   │   │   ├── LearningPathService.cs
+│   │   │   │   ├── MockInterviewService.cs
+│   │   │   │   ├── LinkedInOptimizerService.cs
+│   │   │   │   └── EmailDigestService.cs
+│   │   │   └── External/
+│   │   │       ├── JobFetchService.cs       # Adzuna integration
+│   │   │       └── EmailService.cs          # SendGrid
+│   │   │
+│   │   └── HireKarlo.Persistence/
+│   │       ├── HireKarloDbContext.cs
+│   │       ├── Configurations/              # EF Core entity configs
+│   │       ├── Repositories/
+│   │       └── Migrations/
+│   │
+│   ├── Presentation/
+│   │   ├── HireKarlo.Api/
+│   │   │   ├── Controllers/
+│   │   │   │   ├── AuthController.cs
+│   │   │   │   ├── ResumesController.cs
+│   │   │   │   ├── JobsController.cs
+│   │   │   │   ├── AdvancedAIController.cs  # Advanced AI endpoints
+│   │   │   │   ├── MockInterviewController.cs
+│   │   │   │   ├── LearningPathController.cs
+│   │   │   │   ├── ChatController.cs
+│   │   │   │   └── LinkedInController.cs
+│   │   │   └── Program.cs
+│   │   │
+│   │   └── HireKarlo.Web/
+│   │       ├── HireKarlo.Web/              # Blazor Server host
+│   │       │   └── Components/
+│   │       │       ├── Layout/
+│   │       │       │   └── MainLayout.razor
+│   │       │       └── Pages/
+│   │       │           └── Home.razor
+│   │       │
+│   │       └── HireKarlo.Web.Client/       # Blazor WASM client
+│   │           ├── Pages/
+│   │           │   ├── Resumes.razor
+│   │           │   ├── Jobs.razor
+│   │           │   ├── MockInterview.razor
+│   │           │   ├── Learning.razor
+│   │           │   ├── Chat.razor
+│   │           │   ├── LinkedIn.razor
+│   │           │   ├── Applications.razor
+│   │           │   ├── Login.razor
+│   │           │   └── Register.razor
+│   │           ├── Services/
+│   │           │   ├── ApiClient.cs
+│   │           │   └── AuthStateProvider.cs
+│   │           └── wwwroot/
+│   │               ├── manifest.json        # PWA manifest
+│   │               └── service-worker.js
+│   │
+│   ├── Services/
+│   │   ├── HireKarlo.AtsEngine/            # ATS scoring engine
+│   │   └── HireKarlo.ResumeService/        # Resume parser + generator
+│   │
+│   └── Functions/
+│       └── HireKarlo.JobIngestion/         # Azure Functions for job ingestion
+│
+├── tests/
+│   └── HireKarlo.Tests/
+│
+├── README.md
+├── DEPLOYMENT.md
+└── HireKarlo.slnx
+```
 
 ---
 
-## 7. Build Plan — Parallel Workstreams
+## 🔧 Tech Stack
 
-You asked for "all phases at once" — as a solo builder that's not literally simultaneous, but the architecture is modular enough that these can be built as **independent, parallelizable workstreams** rather than strict sequential phases, since each service is decoupled:
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | Blazor Web App (WASM) | Interactive SPA with PWA support |
+| **API** | ASP.NET Core 9.0 | REST API with JWT auth, rate limiting |
+| **AI/LLM** | Azure OpenAI (GPT-4) | All LLM completions, chat, reasoning |
+| **Embeddings** | text-embedding-ada-002 | Vectorizing resumes, JDs, content |
+| **Vector Store** | Azure AI Search | HNSW index for semantic search |
+| **Database** | Azure SQL + EF Core | Relational data, migrations |
+| **Blob Storage** | Azure Blob Storage | Resume files, generated documents |
+| **Email** | SendGrid | Notifications, weekly digests |
+| **Auth** | JWT + Google/LinkedIn OAuth | Social login support |
+| **Scheduled Jobs** | Azure Functions | Daily job ingestion |
+| **Hosting** | Azure App Service | Free tier available |
 
-- **Workstream A (Foundation)**: Auth, DB schema, API gateway, Blazor shell — everything else depends on this, so it goes first regardless
-- **Workstream B**: Resume parsing + ATS engine + resume version generator
-- **Workstream C**: Python matching microservice + embeddings + job ingestion pipeline
-- **Workstream D**: Job Tracker + Dream Company Checklist (pure CRUD, quick win, good for early momentum)
-- **Workstream E**: Roadmap + Project Recommender
-- **Workstream F**: Interview-experience newsletter (search API integration)
-- **Workstream G**: Referral/contact + LinkedIn optimizer
-- **Workstream H**: Mock interview simulator + outcome predictor (build last — depends on having real usage data)
-- **Workstream I**: MAUI mobile app (once Blazor components are stable enough to share)
+---
 
-Realistic solo timeline: A takes 2-3 weeks and blocks everything; B through G can then run largely in parallel across roughly 3-4 months if you timebox each to 1-2 weeks; H and I are the natural final stretch since they depend on the rest being live.
+## 🚀 Getting Started
+
+### Prerequisites
+
+- .NET 9.0 SDK
+- Azure SQL Database (or LocalDB for development)
+- Azure OpenAI resource with GPT-4 deployment
+- Azure AI Search resource (for vector store)
+
+### Configuration
+
+Create `appsettings.Development.json` in the API project:
+
+```json
+{
+  "ConnectionStrings": {
+	"DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=HireKarlo;Trusted_Connection=True;"
+  },
+  "Jwt": {
+	"Key": "your-jwt-secret-key-minimum-32-characters",
+	"Issuer": "HireKarlo",
+	"Audience": "HireKarlo"
+  },
+  "AzureOpenAI": {
+	"Endpoint": "https://your-resource.openai.azure.com/",
+	"ApiKey": "your-api-key",
+	"DeploymentName": "gpt-4",
+	"EmbeddingDeploymentName": "text-embedding-ada-002"
+  },
+  "AzureAISearch": {
+	"Endpoint": "https://your-search.search.windows.net",
+	"ApiKey": "your-api-key",
+	"IndexName": "hirekarlo-vectors"
+  }
+}
+```
+
+### Run Locally
+
+```bash
+# Apply database migrations
+cd src/Presentation/HireKarlo.Api
+dotnet ef database update
+
+# Run the API
+dotnet run
+
+# In another terminal, run the Web app
+cd src/Presentation/HireKarlo.Web/HireKarlo.Web
+dotnet run
+```
+
+API will be at: `https://localhost:7001`  
+Web app will be at: `https://localhost:7002`
+
+---
+
+## 📚 API Endpoints Reference
+
+### Authentication
+```
+POST /api/auth/register          # Email/password registration
+POST /api/auth/login             # Email/password login
+POST /api/auth/google            # Google OAuth login
+POST /api/auth/linkedin          # LinkedIn OAuth login
+POST /api/auth/refresh           # Refresh JWT token
+```
+
+### Advanced AI (New!)
+```
+POST /api/advancedai/predict-outcome      # Application outcome prediction
+POST /api/advancedai/explainable-ats      # Detailed ATS score breakdown
+POST /api/advancedai/keyword-radar        # Keyword trend analysis
+POST /api/advancedai/skill-trajectory     # Skill development simulation
+POST /api/advancedai/career-roadmap       # 6-month career plan
+POST /api/advancedai/tailor-resume        # JD-specific resume tailoring
+POST /api/advancedai/interview-questions  # RAG-powered interview questions
+```
+
+### Resume & ATS
+```
+GET  /api/resumes                 # List user's resumes
+POST /api/resumes/upload          # Upload new resume
+POST /api/resumes/{id}/ats-score  # Get ATS score for resume
+POST /api/resumes/{id}/tailor     # Generate tailored version
+```
+
+### Jobs
+```
+GET  /api/jobs/search             # Search job listings
+GET  /api/jobs/{id}               # Get job details
+GET  /api/jobs/{id}/match         # Get match score with user's resume
+```
+
+### Mock Interview
+```
+POST /api/mockinterview/start     # Start new interview session
+POST /api/mockinterview/answer    # Submit answer for evaluation
+GET  /api/mockinterview/feedback  # Get session feedback
+```
+
+### Learning Paths
+```
+POST /api/learning/company        # Generate company-specific path
+POST /api/learning/skill          # Generate skill-based path
+POST /api/learning/interview      # Generate interview-pattern path
+GET  /api/learning/active         # Get current active path
+POST /api/learning/quiz           # Generate quiz
+POST /api/learning/quiz/submit    # Submit quiz answers
+```
+
+### AI Chat
+```
+POST /api/chat/send               # Send message to AI assistant
+POST /api/chat/stream             # Stream response (SSE)
+```
+
+---
+
+## 🔐 Security
+
+- JWT-based authentication with refresh tokens
+- Google and LinkedIn OAuth 2.0 support
+- Rate limiting on API endpoints
+- CORS configured for allowed origins
+- All sensitive data in Azure Key Vault (production)
+
+---
+
+## 🎯 How It All Works Together
+
+### 1. User Onboarding
+```
+User Signs Up → Upload Resume → Parse & Vectorize → Store in SQL + Vector Index
+```
+
+### 2. Job Discovery
+```
+Daily Job Fetch (Azure Functions) → Match Against User Resumes → 
+Score > 70% → Notify User → Show on Dashboard
+```
+
+### 3. Resume Optimization Loop
+```
+User selects Job → Get ATS Score → See exact gaps → 
+Tailor Resume with AI → New higher score → Apply
+```
+
+### 4. Interview Prep
+```
+Select Target Company → RAG retrieves real experiences → 
+AI generates grounded questions → Practice with Mock Interview → 
+Get STAR-method feedback → Track weak areas
+```
+
+### 5. Career Growth
+```
+AI analyzes skill gaps → Recommends projects → Generates learning path → 
+Skill trajectory shows progress → 6-month roadmap guides actions
+```
+
+---
+
+## 📈 Roadmap
+
+- [ ] Mobile app (MAUI Blazor Hybrid)
+- [ ] Push notifications for job alerts
+- [ ] Chrome extension for one-click apply
+- [ ] More job sources (Greenhouse, Lever APIs)
+- [ ] Interview scheduling integration
+- [ ] Team/enterprise features
+
+---
+
+## 📄 License
+
+This project is proprietary. All rights reserved.

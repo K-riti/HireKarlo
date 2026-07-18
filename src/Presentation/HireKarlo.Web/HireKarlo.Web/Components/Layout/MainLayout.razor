@@ -1,0 +1,158 @@
+﻿@inherits LayoutComponentBase
+@inject AuthStateProvider AuthState
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar @(sidebarCollapsed ? "collapsed" : "")">
+        <div class="sidebar-header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🚀</span>
+                @if (!sidebarCollapsed)
+                {
+                    <span class="logo-text">HireKarlo</span>
+                }
+            </a>
+            <button class="toggle-btn" @onclick="ToggleSidebar">
+                @(sidebarCollapsed ? "→" : "←")
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <NavLink href="/" class="nav-item" Match="NavLinkMatch.All">
+                <span class="nav-icon">🏠</span>
+                @if (!sidebarCollapsed) { <span>Dashboard</span> }
+            </NavLink>
+            <NavLink href="/resumes" class="nav-item">
+                <span class="nav-icon">📄</span>
+                @if (!sidebarCollapsed) { <span>Resumes</span> }
+            </NavLink>
+            <NavLink href="/jobs" class="nav-item">
+                <span class="nav-icon">💼</span>
+                @if (!sidebarCollapsed) { <span>Jobs</span> }
+            </NavLink>
+            <NavLink href="/applications" class="nav-item">
+                <span class="nav-icon">📋</span>
+                @if (!sidebarCollapsed) { <span>Applications</span> }
+            </NavLink>
+            <NavLink href="/mock-interview" class="nav-item">
+                <span class="nav-icon">🎤</span>
+                @if (!sidebarCollapsed) { <span>Mock Interview</span> }
+            </NavLink>
+            <NavLink href="/learning" class="nav-item">
+                <span class="nav-icon">📚</span>
+                @if (!sidebarCollapsed) { <span>Learning Path</span> }
+            </NavLink>
+            <NavLink href="/linkedin" class="nav-item">
+                <span class="nav-icon">💼</span>
+                @if (!sidebarCollapsed) { <span>LinkedIn Optimizer</span> }
+            </NavLink>
+            <NavLink href="/chat" class="nav-item">
+                <span class="nav-icon">🤖</span>
+                @if (!sidebarCollapsed) { <span>AI Assistant</span> }
+            </NavLink>
+        </nav>
+
+        <div class="sidebar-footer">
+            @if (AuthState.IsAuthenticated)
+            {
+                <div class="user-info">
+                    <img src="@(AuthState.CurrentUser?.ProfilePictureUrl ?? "/images/default-avatar.png")" alt="Avatar" class="avatar" />
+                    @if (!sidebarCollapsed)
+                    {
+                        <div class="user-details">
+                            <span class="user-name">@AuthState.CurrentUser?.Name</span>
+                            <button class="logout-btn" @onclick="Logout">Logout</button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <NavLink href="/login" class="nav-item login-btn">
+                    <span class="nav-icon">🔐</span>
+                    @if (!sidebarCollapsed) { <span>Login</span> }
+                </NavLink>
+            }
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="search-box">
+                <input type="text" placeholder="Search jobs, skills, companies..." />
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="top-bar-actions">
+                <button class="notification-btn" title="Notifications">🔔</button>
+                <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
+                    @(isDarkMode ? "☀️" : "🌙")
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            @Body
+        </div>
+    </main>
+</div>
+
+<!-- AI Chat Widget -->
+<div class="chat-widget @(chatOpen ? "open" : "")">
+    <button class="chat-toggle" @onclick="ToggleChat">
+        @(chatOpen ? "✕" : "🤖")
+    </button>
+    @if (chatOpen)
+    {
+        <div class="chat-container">
+            <div class="chat-header">
+                <span>AI Career Assistant</span>
+            </div>
+            <div class="chat-messages">
+                <div class="message assistant">
+                    Hi! I'm your AI career assistant. Ask me about resumes, interviews, or career advice!
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" placeholder="Type a message..." @bind="chatMessage" @onkeypress="HandleChatKeyPress" />
+                <button @onclick="SendChatMessage">Send</button>
+            </div>
+        </div>
+    }
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool sidebarCollapsed = false;
+    private bool isDarkMode = false;
+    private bool chatOpen = false;
+    private string chatMessage = "";
+
+    private void ToggleSidebar() => sidebarCollapsed = !sidebarCollapsed;
+    private void ToggleTheme() => isDarkMode = !isDarkMode;
+    private void ToggleChat() => chatOpen = !chatOpen;
+
+    private async Task Logout()
+    {
+        await AuthState.LogoutAsync();
+    }
+
+    private void HandleChatKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") SendChatMessage();
+    }
+
+    private void SendChatMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(chatMessage))
+        {
+            // TODO: Send to API
+            chatMessage = "";
+        }
+    }
+}

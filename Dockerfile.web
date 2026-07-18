@@ -1,0 +1,33 @@
+# HireKarlo Web Dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 10000
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY HireKarlo.slnx .
+COPY src/Core/HireKarlo.Domain/HireKarlo.Domain.csproj src/Core/HireKarlo.Domain/
+COPY src/Core/HireKarlo.Application/HireKarlo.Application.csproj src/Core/HireKarlo.Application/
+COPY src/Core/HireKarlo.Shared/HireKarlo.Shared.csproj src/Core/HireKarlo.Shared/
+COPY src/Presentation/HireKarlo.Web/HireKarlo.Web/HireKarlo.Web.csproj src/Presentation/HireKarlo.Web/HireKarlo.Web/
+COPY src/Presentation/HireKarlo.Web/HireKarlo.Web.Client/HireKarlo.Web.Client.csproj src/Presentation/HireKarlo.Web/HireKarlo.Web.Client/
+
+# Restore
+RUN dotnet restore src/Presentation/HireKarlo.Web/HireKarlo.Web/HireKarlo.Web.csproj
+
+# Copy everything else
+COPY . .
+
+# Build
+WORKDIR /src/src/Presentation/HireKarlo.Web/HireKarlo.Web
+RUN dotnet build -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "HireKarlo.Web.dll"]

@@ -1,0 +1,208 @@
+@page "/chat"
+@inject ApiClient Api
+
+<PageTitle>AI Career Assistant - HireKarlo</PageTitle>
+
+<div class="chat-page">
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="assistant-info">
+                <div class="assistant-avatar">??</div>
+                <div>
+                    <h2>AI Career Assistant</h2>
+                    <span class="status">Always available to help</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" @onclick="ClearChat" title="Clear chat">???</button>
+            </div>
+        </div>
+
+        <div class="messages-container" @ref="messagesContainer">
+            @foreach (var message in messages)
+            {
+                <div class="message @message.Role">
+                    <div class="message-avatar">
+                        @(message.Role == "assistant" ? "??" : "??")
+                    </div>
+                    <div class="message-content">
+                        <div class="message-text">@message.Content</div>
+                        @if (message.Suggestions?.Any() == true)
+                        {
+                            <div class="suggestions">
+                                @foreach (var suggestion in message.Suggestions)
+                                {
+                                    <button class="suggestion-btn" @onclick="@(() => SendSuggestion(suggestion))">
+                                        @suggestion
+                                    </button>
+                                }
+                            </div>
+                        }
+                        <span class="message-time">@message.Timestamp.ToString("h:mm tt")</span>
+                    </div>
+                </div>
+            }
+
+            @if (isTyping)
+            {
+                <div class="message assistant">
+                    <div class="message-avatar">??</div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (messages.Count <= 1)
+        {
+            <div class="quick-actions">
+                <h3>Quick Questions</h3>
+                <div class="actions-grid">
+                    <button class="action-card" @onclick="@(() => SendQuickQuestion(0))">
+                        <span class="action-icon">??</span>
+                        <span>Resume Tips</span>
+                    </button>
+                    <button class="action-card" @onclick="@(() => SendQuickQuestion(1))">
+                        <span class="action-icon">??</span>
+                        <span>Interview Prep</span>
+                    </button>
+                    <button class="action-card" @onclick="@(() => SendQuickQuestion(2))">
+                        <span class="action-icon">??</span>
+                        <span>Salary Negotiation</span>
+                    </button>
+                    <button class="action-card" @onclick="@(() => SendQuickQuestion(3))">
+                        <span class="action-icon">??</span>
+                        <span>Skill Advice</span>
+                    </button>
+                </div>
+            </div>
+        }
+
+        <div class="chat-input">
+            <div class="input-wrapper">
+                <textarea @bind="inputMessage" @onkeydown="HandleKeyDown" placeholder="Ask me anything about your career..." rows="1"></textarea>
+                <button class="send-btn" @onclick="SendCurrentMessage" disabled="@(string.IsNullOrWhiteSpace(inputMessage) || isTyping)">?</button>
+            </div>
+            <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+        </div>
+    </div>
+
+    <div class="chat-sidebar">
+        <div class="sidebar-section">
+            <h3>?? What I Can Help With</h3>
+            <ul>
+                <li>Resume optimization</li>
+                <li>Interview preparation</li>
+                <li>Salary negotiation</li>
+                <li>Career path guidance</li>
+                <li>Skill development</li>
+                <li>LinkedIn optimization</li>
+            </ul>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>?? Popular Topics</h3>
+            <div class="topic-tags">
+                <button class="topic-tag" @onclick="@(() => SendTopicQuestion(0))">FAANG Prep</button>
+                <button class="topic-tag" @onclick="@(() => SendTopicQuestion(1))">Career Switch</button>
+                <button class="topic-tag" @onclick="@(() => SendTopicQuestion(2))">System Design</button>
+                <button class="topic-tag" @onclick="@(() => SendTopicQuestion(3))">Portfolio</button>
+            </div>
+        </div>
+
+        <div class="sidebar-section context-section">
+            <h3>?? Context</h3>
+            <p class="context-hint">Add context for better advice:</p>
+            <textarea @bind="contextInfo" placeholder="e.g., Junior developer with Python experience..."></textarea>
+            <button class="btn btn-secondary btn-small" @onclick="UpdateContext">Update Context</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ChatMessage> messages = new();
+    private string inputMessage = "";
+    private string contextInfo = "";
+    private bool isTyping;
+    private ElementReference messagesContainer;
+
+    private readonly string[] quickQuestions = new[]
+    {
+        "How can I improve my resume for tech jobs?",
+        "What should I expect in a Google interview?",
+        "How do I negotiate a higher salary?",
+        "What skills should I learn for machine learning?"
+    };
+
+    private readonly string[] topicQuestions = new[]
+    {
+        "How to crack FAANG interviews?",
+        "How to transition to tech from a non-tech background?",
+        "What is the best way to prepare for system design interviews?",
+        "How to build a strong portfolio as a developer?"
+    };
+
+    protected override void OnInitialized()
+    {
+        messages.Add(new ChatMessage
+        {
+            Role = "assistant",
+            Content = "Hi! I'm your AI Career Assistant. I can help with resume tips, interview prep, salary negotiation, and career advice. What would you like to know?",
+            Timestamp = DateTime.Now,
+            Suggestions = new List<string> { "Resume tips", "Interview prep", "Salary advice" }
+        });
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey) await SendCurrentMessage();
+    }
+
+    private async Task SendCurrentMessage()
+    {
+        if (string.IsNullOrWhiteSpace(inputMessage)) return;
+        await SendMessage(inputMessage);
+        inputMessage = "";
+    }
+
+    private async Task SendSuggestion(string suggestion) => await SendMessage(suggestion);
+    private async Task SendQuickQuestion(int index) { if (index >= 0 && index < quickQuestions.Length) await SendMessage(quickQuestions[index]); }
+    private async Task SendTopicQuestion(int index) { if (index >= 0 && index < topicQuestions.Length) await SendMessage(topicQuestions[index]); }
+
+    private async Task SendMessage(string message)
+    {
+        messages.Add(new ChatMessage { Role = "user", Content = message, Timestamp = DateTime.Now });
+        isTyping = true;
+        StateHasChanged();
+
+        var response = await Api.SendChatMessageAsync(message, contextInfo);
+        isTyping = false;
+
+        messages.Add(new ChatMessage
+        {
+            Role = "assistant",
+            Content = response?.Message ?? "I apologize, but I'm having trouble. Could you try rephrasing?",
+            Timestamp = DateTime.Now,
+            Suggestions = response?.Suggestions
+        });
+    }
+
+    private void ClearChat()
+    {
+        messages.Clear();
+        messages.Add(new ChatMessage { Role = "assistant", Content = "Chat cleared! How can I help?", Timestamp = DateTime.Now });
+    }
+
+    private void UpdateContext() { }
+
+    private class ChatMessage
+    {
+        public string Role { get; set; } = "";
+        public string Content { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+        public List<string>? Suggestions { get; set; }
+    }
+}

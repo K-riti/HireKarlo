@@ -1,0 +1,65 @@
+# Render Blueprint - HireKarlo Platform
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API
+  - type: web
+    name: hirekarlo-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: hirekarlo-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+      - key: Jwt__Issuer
+        value: HireKarlo
+      - key: Jwt__Audience
+        value: HireKarlo
+      - key: AzureOpenAI__Endpoint
+        sync: false
+      - key: AzureOpenAI__ApiKey
+        sync: false
+      - key: AzureOpenAI__DeploymentName
+        value: gpt-4
+      - key: AzureOpenAI__EmbeddingDeploymentName
+        value: text-embedding-ada-002
+      - key: AzureAISearch__Endpoint
+        sync: false
+      - key: AzureAISearch__ApiKey
+        sync: false
+      - key: AzureAISearch__IndexName
+        value: hirekarlo-vectors
+    healthCheckPath: /health
+    plan: free
+
+  # Frontend Web App
+  - type: web
+    name: hirekarlo-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile.web
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: ApiBaseUrl
+        fromService:
+          name: hirekarlo-api
+          type: web
+          property: hostport
+    plan: free
+
+databases:
+  - name: hirekarlo-db
+    databaseName: hirekarlo
+    plan: free
+    postgresMajorVersion: "15"

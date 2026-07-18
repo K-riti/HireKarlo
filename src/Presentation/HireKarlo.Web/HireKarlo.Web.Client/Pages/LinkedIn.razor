@@ -1,0 +1,282 @@
+@page "/linkedin"
+@inject ApiClient Api
+@inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>LinkedIn Optimizer - HireKarlo</PageTitle>
+
+<div class="linkedin-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>💼 LinkedIn Profile Optimizer</h1>
+            <p>AI-powered suggestions to boost your LinkedIn visibility and attract recruiters</p>
+        </div>
+    </div>
+
+    <div class="optimizer-layout">
+        <!-- Left Panel - Input -->
+        <div class="input-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📝 Your LinkedIn Profile</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Headline</label>
+                        <input type="text" class="form-input" @bind="profile.Headline" 
+                               placeholder="e.g., Senior Software Engineer | Cloud Architecture | AI/ML Enthusiast" />
+                        <span class="char-count">@(profile.Headline?.Length ?? 0)/220 characters</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>About / Summary</label>
+                        <textarea class="form-input" @bind="profile.Summary" rows="8"
+                                  placeholder="Write a compelling summary of your professional journey, skills, and career goals..."></textarea>
+                        <span class="char-count">@(profile.Summary?.Length ?? 0)/2600 characters</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Role</label>
+                        <input type="text" class="form-input" @bind="profile.TargetRole" 
+                               placeholder="e.g., Senior Software Engineer" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Companies (comma separated)</label>
+                        <input type="text" class="form-input" @bind="profile.TargetCompanies" 
+                               placeholder="e.g., Google, Microsoft, Amazon" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Key Skills (comma separated)</label>
+                        <input type="text" class="form-input" @bind="profile.Skills" 
+                               placeholder="e.g., Python, AWS, Machine Learning, System Design" />
+                    </div>
+
+                    <button class="btn btn-primary w-full" @onclick="OptimizeProfile" disabled="@isOptimizing">
+                        @if (isOptimizing)
+                        {
+                            <span class="spinner-sm"></span>
+                            <span>Analyzing...</span>
+                        }
+                        else
+                        {
+                            <span>✨ Optimize My Profile</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Results -->
+        <div class="results-panel">
+            @if (result != null)
+            {
+                <!-- Score Card -->
+                <div class="score-card">
+                    <div class="score-circle @GetScoreClass(result.OverallScore)">
+                        <span class="score-value">@result.OverallScore</span>
+                        <span class="score-label">Score</span>
+                    </div>
+                    <div class="score-breakdown">
+                        <div class="breakdown-item">
+                            <span class="item-label">Headline</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: @(result.HeadlineScore)%"></div>
+                            </div>
+                            <span class="item-value">@result.HeadlineScore%</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="item-label">Summary</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: @(result.SummaryScore)%"></div>
+                            </div>
+                            <span class="item-value">@result.SummaryScore%</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="item-label">Keywords</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: @(result.KeywordScore)%"></div>
+                            </div>
+                            <span class="item-value">@result.KeywordScore%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optimized Headline -->
+                <div class="card suggestion-card">
+                    <div class="card-header">
+                        <h3>💡 Optimized Headline</h3>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => CopyToClipboard(result.OptimizedHeadline)">📋 Copy</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="suggestion-text">@result.OptimizedHeadline</p>
+                    </div>
+                </div>
+
+                <!-- Optimized Summary -->
+                <div class="card suggestion-card">
+                    <div class="card-header">
+                        <h3>✍️ Optimized Summary</h3>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => CopyToClipboard(result.OptimizedSummary)">📋 Copy</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="suggestion-text summary">@result.OptimizedSummary</p>
+                    </div>
+                </div>
+
+                <!-- Keywords to Add -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🏷️ Recommended Keywords</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="keywords-grid">
+                            @foreach (var keyword in result.RecommendedKeywords)
+                            {
+                                <span class="keyword-tag">@keyword</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💡 Pro Tips</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="tips-list">
+                            @foreach (var tip in result.Tips)
+                            {
+                                <li>@tip</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="empty-results">
+                    <span class="empty-icon">💼</span>
+                    <h3>Ready to optimize</h3>
+                    <p>Enter your LinkedIn profile details and click "Optimize" to get AI-powered suggestions</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private ProfileInput profile = new();
+    private OptimizationResult? result;
+    private bool isOptimizing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Pre-fill with demo data if user is authenticated
+        if (AuthState.IsAuthenticated)
+        {
+            profile.Headline = "Software Engineer";
+            profile.Skills = "C#, .NET, Azure, SQL Server";
+        }
+    }
+
+    private async Task OptimizeProfile()
+    {
+        if (string.IsNullOrWhiteSpace(profile.Headline) && string.IsNullOrWhiteSpace(profile.Summary))
+        {
+            return;
+        }
+
+        isOptimizing = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Call actual API
+            // result = await Api.OptimizeLinkedInAsync(profile);
+
+            // Simulate API delay
+            await Task.Delay(2000);
+
+            // Demo result
+            result = new OptimizationResult
+            {
+                OverallScore = 85,
+                HeadlineScore = 90,
+                SummaryScore = 80,
+                KeywordScore = 85,
+                OptimizedHeadline = $"{profile.TargetRole ?? "Senior Software Engineer"} | Expert in {profile.Skills?.Split(',').FirstOrDefault()?.Trim() ?? "Cloud"} & AI Solutions | Building Scalable Systems | Open to Opportunities",
+                OptimizedSummary = GetOptimizedSummary(profile),
+                RecommendedKeywords = new List<string>
+                { 
+                    "Software Architecture", "Cloud Computing", "Distributed Systems",
+                    "Agile", "Technical Leadership", "CI/CD", "Microservices",
+                    "Problem Solving", "Cross-functional Collaboration"
+                },
+                Tips = new List<string>
+                {
+                    "Add a professional photo - profiles with photos get 21x more views",
+                    "Include numbers and metrics in your experience (e.g., 'Reduced latency by 40%')",
+                    "Post content regularly to increase visibility in recruiter searches",
+                    "Request recommendations from colleagues and managers",
+                    "Enable 'Open to Work' privately to let recruiters know you're available"
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error optimizing profile: {ex.Message}");
+        }
+        finally
+        {
+            isOptimizing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyToClipboard(string? text)
+    {
+        if (!string.IsNullOrEmpty(text))
+        {
+            // Note: This requires JS interop in production
+            Console.WriteLine("Copied to clipboard");
+        }
+    }
+
+    private string GetScoreClass(int score) => score switch
+    {
+        >= 80 => "score-high",
+        >= 60 => "score-medium",
+        _ => "score-low"
+    };
+
+    private class ProfileInput
+    {
+        public string? Headline { get; set; }
+        public string? Summary { get; set; }
+        public string? TargetRole { get; set; }
+        public string? TargetCompanies { get; set; }
+        public string? Skills { get; set; }
+    }
+
+    private string GetOptimizedSummary(ProfileInput p)
+    {
+        var role = p.TargetRole ?? "Software Engineering";
+        var skills = p.Skills?.Replace(",", "\n• ") ?? "Full-stack development, Cloud architecture, System design";
+        return $"🚀 Passionate technologist with a proven track record of delivering innovative solutions that drive business impact.\n\n💼 Currently focused on: {role}\n\n🔧 Core Expertise:\n• {skills}\n\n🎯 What I bring to the table:\n✅ Strong problem-solving skills with attention to scalability\n✅ Experience mentoring teams and driving technical decisions\n✅ Track record of delivering high-impact projects\n\n📫 Let's connect! I'm always excited to discuss technology, career opportunities, or potential collaborations.";
+    }
+
+    private class OptimizationResult
+    {
+        public int OverallScore { get; set; }
+        public int HeadlineScore { get; set; }
+        public int SummaryScore { get; set; }
+        public int KeywordScore { get; set; }
+        public string? OptimizedHeadline { get; set; }
+        public string? OptimizedSummary { get; set; }
+        public List<string> RecommendedKeywords { get; set; } = new();
+        public List<string> Tips { get; set; } = new();
+    }
+}

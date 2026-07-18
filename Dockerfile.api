@@ -1,0 +1,36 @@
+# HireKarlo API Dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 10000
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY HireKarlo.slnx .
+COPY src/Core/HireKarlo.Domain/HireKarlo.Domain.csproj src/Core/HireKarlo.Domain/
+COPY src/Core/HireKarlo.Application/HireKarlo.Application.csproj src/Core/HireKarlo.Application/
+COPY src/Core/HireKarlo.Shared/HireKarlo.Shared.csproj src/Core/HireKarlo.Shared/
+COPY src/Infrastructure/HireKarlo.Infrastructure/HireKarlo.Infrastructure.csproj src/Infrastructure/HireKarlo.Infrastructure/
+COPY src/Infrastructure/HireKarlo.Persistence/HireKarlo.Persistence.csproj src/Infrastructure/HireKarlo.Persistence/
+COPY src/Services/HireKarlo.AtsEngine/HireKarlo.AtsEngine.csproj src/Services/HireKarlo.AtsEngine/
+COPY src/Services/HireKarlo.ResumeService/HireKarlo.ResumeService.csproj src/Services/HireKarlo.ResumeService/
+COPY src/Presentation/HireKarlo.Api/HireKarlo.Api.csproj src/Presentation/HireKarlo.Api/
+
+# Restore
+RUN dotnet restore src/Presentation/HireKarlo.Api/HireKarlo.Api.csproj
+
+# Copy everything else
+COPY . .
+
+# Build
+WORKDIR /src/src/Presentation/HireKarlo.Api
+RUN dotnet build -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "HireKarlo.Api.dll"]

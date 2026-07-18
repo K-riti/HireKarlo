@@ -1,0 +1,279 @@
+@page "/learning"
+@inject ApiClient Api
+
+<PageTitle>Learning Path - HireKarlo</PageTitle>
+
+<div class="learning-page">
+    <div class="learning-header">
+        <h1>📚 Personalized Learning Path</h1>
+        <p>Master skills for your dream role with AI-powered guidance</p>
+    </div>
+
+    @if (activePath == null)
+    {
+        <div class="path-options">
+            <h2>Create Your Learning Path</h2>
+            <div class="options-grid">
+                <div class="option-card" @onclick="@(() => ShowPathCreator("company"))">
+                    <span class="option-icon">🏢</span>
+                    <h3>Company-Specific</h3>
+                    <p>Prepare for interviews at your target company</p>
+                </div>
+                <div class="option-card" @onclick="@(() => ShowPathCreator("skill"))">
+                    <span class="option-icon">💡</span>
+                    <h3>Skill-Based</h3>
+                    <p>Master specific technologies or frameworks</p>
+                </div>
+                <div class="option-card" @onclick="@(() => ShowPathCreator("role"))">
+                    <span class="option-icon">🎯</span>
+                    <h3>Role-Based</h3>
+                    <p>Transition to a new career path</p>
+                </div>
+                <div class="option-card" @onclick="@(() => ShowPathCreator("interview"))">
+                    <span class="option-icon">🎤</span>
+                    <h3>Interview Prep</h3>
+                    <p>Pattern-based interview preparation</p>
+                </div>
+            </div>
+        </div>
+
+        @if (showCreator)
+        {
+            <div class="path-creator">
+                <h3>@GetCreatorTitle()</h3>
+                <div class="creator-form">
+                    @if (pathType == "company")
+                    {
+                        <input type="text" @bind="companyName" placeholder="Company name (e.g., Google, Amazon)" />
+                        <input type="text" @bind="targetRole" placeholder="Target role (e.g., Senior Software Engineer)" />
+                    }
+                    else if (pathType == "skill")
+                    {
+                        <input type="text" @bind="skillName" placeholder="Skill to learn (e.g., System Design, React)" />
+                        <select @bind="skillLevel">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    }
+                    else if (pathType == "role")
+                    {
+                        <input type="text" @bind="currentRole" placeholder="Current role" />
+                        <input type="text" @bind="targetRole" placeholder="Target role" />
+                    }
+                    else if (pathType == "interview")
+                    {
+                        <input type="text" @bind="companyName" placeholder="Company (optional)" />
+                        <select @bind="interviewType">
+                            <option value="behavioral">Behavioral</option>
+                            <option value="technical">Technical</option>
+                            <option value="system-design">System Design</option>
+                            <option value="all">All Types</option>
+                        </select>
+                    }
+                    <button class="btn btn-primary" @onclick="CreatePath" disabled="@isCreating">
+                        @(isCreating ? "Creating..." : "Generate Learning Path")
+                    </button>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="active-path">
+            <div class="path-header">
+                <div class="path-info">
+                    <h2>@activePath.Title</h2>
+                    <p>@activePath.Description</p>
+                </div>
+                <div class="path-progress">
+                    <div class="progress-circle">
+                        <span>@activePath.CompletionPercentage%</span>
+                    </div>
+                    <span>Complete</span>
+                </div>
+            </div>
+
+            <div class="modules-list">
+                @foreach (var module in activePath.Modules)
+                {
+                    <div class="module-card @(module.Status.ToLower())">
+                        <div class="module-header">
+                            <span class="module-status">@GetStatusIcon(module.Status)</span>
+                            <div class="module-info">
+                                <h4>@module.Title</h4>
+                                <p>@module.EstimatedHours hours • @module.Type</p>
+                            </div>
+                            @if (module.Status == "Completed")
+                            {
+                                <span class="completed-badge">✓</span>
+                            }
+                        </div>
+
+                        @if (expandedModule == module.Id)
+                        {
+                            <div class="module-content">
+                                <p>@module.Description</p>
+                                <div class="module-actions">
+                                    @if (module.Status != "Completed")
+                                    {
+                                        <button class="btn btn-primary btn-small" @onclick="() => StartModule(module)">
+                                            @(module.Status == "InProgress" ? "Continue" : "Start")
+                                        </button>
+                                    }
+                                    @if (module.HasQuiz)
+                                    {
+                                        <button class="btn btn-secondary btn-small" @onclick="() => TakeQuiz(module)">Take Quiz</button>
+                                    }
+                                </div>
+                                @if (module.Resources?.Any() == true)
+                                {
+                                    <div class="resources">
+                                        <h5>Resources</h5>
+                                        @foreach (var resource in module.Resources)
+                                        {
+                                            <a href="@resource.Url" target="_blank">@resource.Title</a>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <button class="expand-btn" @onclick="() => ToggleModule(module.Id)">
+                            @(expandedModule == module.Id ? "▲" : "▼")
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="path-actions">
+                <button class="btn btn-secondary" @onclick="() => activePath = null">Create New Path</button>
+            </div>
+        </div>
+    }
+
+    @if (showQuiz)
+    {
+        <div class="quiz-modal">
+            <div class="quiz-content">
+                <h3>Quiz: @currentQuiz?.ModuleTitle</h3>
+                @if (currentQuestion != null)
+                {
+                    <div class="question">
+                        <p>Question @(currentQuestionIndex + 1) of @currentQuiz?.Questions.Count</p>
+                        <h4>@currentQuestion.Question</h4>
+                        <div class="options">
+                            @foreach (var option in currentQuestion.Options)
+                            {
+                                <label class="option @(selectedAnswer == option ? "selected" : "")">
+                                    <input type="radio" name="answer" value="@option" @onchange="() => selectedAnswer = option" />
+                                    @option
+                                </label>
+                            }
+                        </div>
+                        <button class="btn btn-primary" @onclick="SubmitAnswer" disabled="@(selectedAnswer == null)">
+                            @(currentQuestionIndex == currentQuiz?.Questions.Count - 1 ? "Finish Quiz" : "Next Question")
+                        </button>
+                    </div>
+                }
+                <button class="close-btn" @onclick="() => showQuiz = false">×</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private LearningPathDto? activePath;
+    private bool showCreator;
+    private string pathType = "";
+    private string companyName = "";
+    private string targetRole = "";
+    private string skillName = "";
+    private string skillLevel = "intermediate";
+    private string currentRole = "";
+    private string interviewType = "all";
+    private bool isCreating;
+    private Guid? expandedModule;
+    private bool showQuiz;
+    private QuizDto? currentQuiz;
+    private int currentQuestionIndex;
+    private QuizQuestionDto? currentQuestion => currentQuiz?.Questions.ElementAtOrDefault(currentQuestionIndex);
+    private string? selectedAnswer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        activePath = await Api.GetActiveLearningPathAsync();
+    }
+
+    private void ShowPathCreator(string type)
+    {
+        pathType = type;
+        showCreator = true;
+    }
+
+    private string GetCreatorTitle() => pathType switch
+    {
+        "company" => "🏢 Company-Specific Path",
+        "skill" => "💡 Skill-Based Path",
+        "role" => "🎯 Role Transition Path",
+        "interview" => "🎤 Interview Prep Path",
+        _ => "Create Path"
+    };
+
+    private async Task CreatePath()
+    {
+        isCreating = true;
+        // Generate path and then fetch the active path
+        LearningPathResult? result = pathType switch
+        {
+            "company" => await Api.GenerateCompanyPathAsync(companyName, targetRole),
+            "skill" => await Api.GenerateSkillPathAsync(new List<string> { skillName }, 2),
+            _ => await Api.GenerateCompanyPathAsync(companyName, targetRole)
+        };
+        if (result?.Success == true)
+        {
+            activePath = await Api.GetActiveLearningPathAsync();
+        }
+        isCreating = false;
+        showCreator = false;
+    }
+
+    private void ToggleModule(Guid moduleId)
+    {
+        expandedModule = expandedModule == moduleId ? null : moduleId;
+    }
+
+    private async Task StartModule(LearningModuleDto module)
+    {
+        // Mark module as in progress
+    }
+
+    private async Task TakeQuiz(LearningModuleDto module)
+    {
+        currentQuiz = await Api.GetQuizAsync(module.Id);
+        currentQuestionIndex = 0;
+        selectedAnswer = null;
+        showQuiz = true;
+    }
+
+    private async Task SubmitAnswer()
+    {
+        if (currentQuestionIndex < (currentQuiz?.Questions.Count ?? 0) - 1)
+        {
+            currentQuestionIndex++;
+            selectedAnswer = null;
+        }
+        else
+        {
+            // Submit quiz
+            showQuiz = false;
+        }
+    }
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        "Completed" => "✅",
+        "InProgress" => "🔄",
+        _ => "⏳"
+    };
+}

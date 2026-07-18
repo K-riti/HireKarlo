@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/HireKarlo.Application/HireKarlo.Application.csproj" />
+    <Project Path="src/Core/HireKarlo.Domain/HireKarlo.Domain.csproj" />
+    <Project Path="src/Core/HireKarlo.Shared/HireKarlo.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/Functions/">
+    <Project Path="src/Functions/HireKarlo.JobIngestion/HireKarlo.JobIngestion.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/HireKarlo.Infrastructure/HireKarlo.Infrastructure.csproj" />
+    <Project Path="src/Infrastructure/HireKarlo.Persistence/HireKarlo.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="src/Presentation/HireKarlo.Api/HireKarlo.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/HireKarlo.Web/">
+    <Project Path="src/Presentation/HireKarlo.Web/HireKarlo.Web.Client/HireKarlo.Web.Client.csproj" />
+    <Project Path="src/Presentation/HireKarlo.Web/HireKarlo.Web/HireKarlo.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/Services/HireKarlo.AtsEngine/HireKarlo.AtsEngine.csproj" />
+    <Project Path="src/Services/HireKarlo.ResumeService/HireKarlo.ResumeService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HireKarlo.Api.Tests/HireKarlo.Api.Tests.csproj" />
+    <Project Path="tests/HireKarlo.Application.Tests/HireKarlo.Application.Tests.csproj" />
+    <Project Path="tests/HireKarlo.Domain.Tests/HireKarlo.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

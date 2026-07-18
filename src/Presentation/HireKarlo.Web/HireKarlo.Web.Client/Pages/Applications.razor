@@ -1,0 +1,289 @@
+@page "/applications"
+@inject ApiClient Api
+@inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Applications - HireKarlo</PageTitle>
+
+<div class="applications-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>📋 Job Applications</h1>
+            <p>Track your job applications and monitor progress</p>
+        </div>
+        <button class="btn btn-primary" @onclick="() => showAddModal = true">
+            <span>➕</span> Add Application
+        </button>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <span class="stat-icon">📝</span>
+            <div class="stat-info">
+                <span class="stat-value">@applications.Count</span>
+                <span class="stat-label">Total Applications</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">⏳</span>
+            <div class="stat-info">
+                <span class="stat-value">@applications.Count(a => a.Status == "Applied")</span>
+                <span class="stat-label">Pending</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">🎤</span>
+            <div class="stat-info">
+                <span class="stat-value">@applications.Count(a => a.Status == "Interview")</span>
+                <span class="stat-label">Interviews</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">✅</span>
+            <div class="stat-info">
+                <span class="stat-value">@applications.Count(a => a.Status == "Offer")</span>
+                <span class="stat-label">Offers</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search applications..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+        <div class="filter-buttons">
+            <button class="filter-btn @(statusFilter == "" ? "active" : "")" @onclick="ClearFilter">All</button>
+            <button class="filter-btn @(statusFilter == "Applied" ? "active" : "")" @onclick="() => SetFilter(StatusApplied)">Applied</button>
+            <button class="filter-btn @(statusFilter == "Interview" ? "active" : "")" @onclick="() => SetFilter(StatusInterview)">Interview</button>
+            <button class="filter-btn @(statusFilter == "Offer" ? "active" : "")" @onclick="() => SetFilter(StatusOffer)">Offer</button>
+            <button class="filter-btn @(statusFilter == "Rejected" ? "active" : "")" @onclick="() => SetFilter(StatusRejected)">Rejected</button>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    @if (isLoading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading applications...</p>
+        </div>
+    }
+    else if (!FilteredApplications.Any())
+    {
+        <div class="empty-state">
+            <span class="empty-icon">📭</span>
+            <h3>No applications yet</h3>
+            <p>Start tracking your job applications to stay organized</p>
+            <button class="btn btn-primary" @onclick="() => showAddModal = true">Add Your First Application</button>
+        </div>
+    }
+    else
+    {
+        <div class="applications-grid">
+            @foreach (var app in FilteredApplications)
+            {
+                <div class="application-card @GetStatusClass(app.Status)">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <div class="company-logo">@app.Company[0]</div>
+                            <div>
+                                <h3>@app.Position</h3>
+                                <p>@app.Company</p>
+                            </div>
+                        </div>
+                        <span class="status-badge @GetStatusClass(app.Status)">@app.Status</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">📍 Location</span>
+                            <span class="info-value">@(app.Location ?? "Remote")</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">📅 Applied</span>
+                            <span class="info-value">@app.AppliedDate.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        @if (app.MatchScore > 0)
+                        {
+                            <div class="info-row">
+                                <span class="info-label">🎯 Match</span>
+                                <span class="info-value match-score">@app.MatchScore%</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-ghost btn-sm" @onclick="() => ViewDetails(app)">View Details</button>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => UpdateStatus(app)">Update Status</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (showAddModal)
+{
+    <div class="modal-overlay" @onclick="() => showAddModal = false">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Add New Application</h2>
+                <button class="modal-close" @onclick="() => showAddModal = false">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" class="form-input" @bind="newApp.Company" placeholder="e.g., Google" />
+                </div>
+                <div class="form-group">
+                    <label>Position</label>
+                    <input type="text" class="form-input" @bind="newApp.Position" placeholder="e.g., Software Engineer" />
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" class="form-input" @bind="newApp.Location" placeholder="e.g., San Francisco, CA" />
+                </div>
+                <div class="form-group">
+                    <label>Job URL (optional)</label>
+                    <input type="url" class="form-input" @bind="newApp.JobUrl" placeholder="https://..." />
+                </div>
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea class="form-input" @bind="newApp.Notes" rows="3" placeholder="Any notes about this application..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="() => showAddModal = false">Cancel</button>
+                <button class="btn btn-primary" @onclick="AddApplication">Add Application</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ApplicationDto> applications = new();
+    private bool isLoading = true;
+    private bool showAddModal = false;
+    private string searchQuery = "";
+    private string statusFilter = "";
+    private NewApplicationDto newApp = new();
+
+    // Status constants
+    private const string StatusApplied = "Applied";
+    private const string StatusInterview = "Interview";
+    private const string StatusOffer = "Offer";
+    private const string StatusRejected = "Rejected";
+
+    private void SetFilter(string filter) => statusFilter = filter;
+    private void ClearFilter() => statusFilter = "";
+
+    private IEnumerable<ApplicationDto> FilteredApplications => applications
+        .Where(a => string.IsNullOrEmpty(searchQuery) || 
+                    a.Company.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    a.Position.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+        .Where(a => string.IsNullOrEmpty(statusFilter) || a.Status == statusFilter)
+        .OrderByDescending(a => a.AppliedDate);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadApplications();
+    }
+
+    private async Task LoadApplications()
+    {
+        isLoading = true;
+        try
+        {
+            // TODO: Load from API
+            // applications = await Api.GetApplicationsAsync();
+
+            // Demo data for now
+            applications = new List<ApplicationDto>
+            {
+                new() { Id = Guid.NewGuid(), Company = "Google", Position = "Senior Software Engineer", Status = "Interview", Location = "Mountain View, CA", AppliedDate = DateTime.Now.AddDays(-5), MatchScore = 92 },
+                new() { Id = Guid.NewGuid(), Company = "Microsoft", Position = "Cloud Engineer", Status = "Applied", Location = "Seattle, WA", AppliedDate = DateTime.Now.AddDays(-3), MatchScore = 85 },
+                new() { Id = Guid.NewGuid(), Company = "Amazon", Position = "SDE II", Status = "Applied", Location = "Seattle, WA", AppliedDate = DateTime.Now.AddDays(-7), MatchScore = 78 },
+                new() { Id = Guid.NewGuid(), Company = "Meta", Position = "Full Stack Developer", Status = "Rejected", Location = "Menlo Park, CA", AppliedDate = DateTime.Now.AddDays(-14), MatchScore = 65 },
+                new() { Id = Guid.NewGuid(), Company = "Apple", Position = "iOS Engineer", Status = "Offer", Location = "Cupertino, CA", AppliedDate = DateTime.Now.AddDays(-21), MatchScore = 95 }
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading applications: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AddApplication()
+    {
+        var app = new ApplicationDto
+        {
+            Id = Guid.NewGuid(),
+            Company = newApp.Company,
+            Position = newApp.Position,
+            Location = newApp.Location,
+            JobUrl = newApp.JobUrl,
+            Notes = newApp.Notes,
+            Status = "Applied",
+            AppliedDate = DateTime.Now
+        };
+
+        applications.Insert(0, app);
+        newApp = new();
+        showAddModal = false;
+
+        // TODO: Save to API
+        // await Api.AddApplicationAsync(app);
+    }
+
+    private void ViewDetails(ApplicationDto app)
+    {
+        // TODO: Navigate to details or show modal
+    }
+
+    private void UpdateStatus(ApplicationDto app)
+    {
+        // TODO: Show status update modal
+    }
+
+    private string GetStatusClass(string status) => status?.ToLower() switch
+    {
+        "applied" => "status-applied",
+        "interview" => "status-interview",
+        "offer" => "status-offer",
+        "rejected" => "status-rejected",
+        _ => ""
+    };
+
+    private class ApplicationDto
+    {
+        public Guid Id { get; set; }
+        public string Company { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string? Location { get; set; }
+        public string Status { get; set; } = "Applied";
+        public DateTime AppliedDate { get; set; }
+        public int MatchScore { get; set; }
+        public string? JobUrl { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    private class NewApplicationDto
+    {
+        public string Company { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string? Location { get; set; }
+        public string? JobUrl { get; set; }
+        public string? Notes { get; set; }
+    }
+}

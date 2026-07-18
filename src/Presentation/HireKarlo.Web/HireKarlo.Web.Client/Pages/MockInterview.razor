@@ -1,0 +1,448 @@
+@page "/mock-interview"
+@inject ApiClient Api
+
+<PageTitle>Mock Interview - HireKarlo</PageTitle>
+
+<div class="interview-page">
+    @if (currentSession == null)
+    {
+        <!-- Setup Screen -->
+        <div class="setup-screen">
+            <div class="setup-header">
+                <h1>🎤 Mock Interview Simulator</h1>
+                <p>Practice with AI-powered interviews tailored to your target company</p>
+            </div>
+
+            <div class="setup-form">
+                <div class="form-group">
+                    <label>Interview Type</label>
+                    <div class="radio-cards">
+                        <label class="radio-card @(interviewType == "Behavioral" ? "selected" : "")">
+                            <input type="radio" name="type" value="Behavioral" @onchange="@(() => interviewType = "Behavioral")" />
+                            <span class="icon">🗣️</span>
+                            <span class="title">Behavioral</span>
+                            <span class="desc">STAR method questions</span>
+                        </label>
+                        <label class="radio-card @(interviewType == "Technical" ? "selected" : "")">
+                            <input type="radio" name="type" value="Technical" @onchange="@(() => interviewType = "Technical")" />
+                            <span class="icon">💻</span>
+                            <span class="title">Technical</span>
+                            <span class="desc">Coding & concepts</span>
+                        </label>
+                        <label class="radio-card @(interviewType == "SystemDesign" ? "selected" : "")">
+                            <input type="radio" name="type" value="SystemDesign" @onchange="@(() => interviewType = "SystemDesign")" />
+                            <span class="icon">🏗️</span>
+                            <span class="title">System Design</span>
+                            <span class="desc">Architecture questions</span>
+                        </label>
+                        <label class="radio-card @(interviewType == "Mixed" ? "selected" : "")">
+                            <input type="radio" name="type" value="Mixed" @onchange="@(() => interviewType = "Mixed")" />
+                            <span class="icon">🎯</span>
+                            <span class="title">Mixed</span>
+                            <span class="desc">All types combined</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Target Company (Optional)</label>
+                        <input type="text" @bind="targetCompany" placeholder="e.g., Google, Amazon, Meta" />
+                    </div>
+                    <div class="form-group">
+                        <label>Target Role</label>
+                        <input type="text" @bind="targetRole" placeholder="e.g., Senior Software Engineer" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of Questions: @numberOfQuestions</label>
+                    <input type="range" min="3" max="10" @bind="numberOfQuestions" />
+                </div>
+
+                <button class="btn btn-primary btn-large" @onclick="StartInterview" disabled="@isStarting">
+                    @if (isStarting)
+                    {
+                        <span>Preparing Interview...</span>
+                    }
+                    else
+                    {
+                        <span>🚀 Start Interview</span>
+                    }
+                </button>
+            </div>
+
+            <div class="tips-section">
+                <h3>💡 Interview Tips</h3>
+                <div class="tips-grid">
+                    <div class="tip">
+                        <span class="tip-icon">⏱️</span>
+                        <span>Take your time to think before answering</span>
+                    </div>
+                    <div class="tip">
+                        <span class="tip-icon">📝</span>
+                        <span>Use the STAR method for behavioral questions</span>
+                    </div>
+                    <div class="tip">
+                        <span class="tip-icon">🎯</span>
+                        <span>Be specific with examples and metrics</span>
+                    </div>
+                    <div class="tip">
+                        <span class="tip-icon">💬</span>
+                        <span>Ask clarifying questions when needed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (sessionComplete)
+    {
+        <!-- Results Screen -->
+        <div class="results-screen">
+            <div class="results-header">
+                <h1>🎉 Interview Complete!</h1>
+                <p>Here's how you did</p>
+            </div>
+
+            @if (sessionSummary != null)
+            {
+                <div class="score-section">
+                    <div class="main-score @GetScoreClass(sessionSummary.AverageScore)">
+                        <span class="score-value">@sessionSummary.AverageScore</span>
+                        <span class="score-max">/100</span>
+                    </div>
+                    <p class="score-label">Average Score</p>
+                </div>
+
+                <div class="results-grid">
+                    <div class="result-card">
+                        <h3>✅ Strongest Areas</h3>
+                        <ul>
+                            @foreach (var area in sessionSummary.StrongestAreas)
+                            {
+                                <li>@area</li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="result-card">
+                        <h3>📈 Areas to Improve</h3>
+                        <ul>
+                            @foreach (var area in sessionSummary.WeakestAreas)
+                            {
+                                <li>@area</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="feedback-section">
+                    <h3>📝 Overall Feedback</h3>
+                    <p>@sessionSummary.OverallFeedback</p>
+                </div>
+
+                <div class="improvement-section">
+                    <h3>🎯 Improvement Plan</h3>
+                    <ol>
+                        @foreach (var step in sessionSummary.ImprovementPlan)
+                        {
+                            <li>@step</li>
+                        }
+                    </ol>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-secondary" @onclick="StartNewInterview">Start New Interview</button>
+                    <button class="btn btn-primary">Save to Learning Path</button>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Interview Screen -->
+        <div class="interview-screen">
+            <div class="interview-header">
+                <div class="progress-info">
+                    <span>Question @currentQuestionNumber of @currentSession.TotalQuestions</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: @((currentQuestionNumber * 100 / currentSession.TotalQuestions))%"></div>
+                    </div>
+                </div>
+                <div class="timer @(timeRemaining < 30 ? "warning" : "")">
+                    ⏱️ @TimeSpan.FromSeconds(timeRemaining).ToString(@"m\:ss")
+                </div>
+            </div>
+
+            @if (currentQuestion != null)
+            {
+                <div class="question-section">
+                    <div class="question-badge">@currentQuestion.Category</div>
+                    <h2 class="question-text">@currentQuestion.Question</h2>
+                    @if (!string.IsNullOrEmpty(currentQuestion.Hint))
+                    {
+                        <button class="hint-btn" @onclick="ToggleHint">
+                            💡 @(showHint ? "Hide Hint" : "Show Hint")
+                        </button>
+                        @if (showHint)
+                        {
+                            <p class="hint-text">@currentQuestion.Hint</p>
+                        }
+                    }
+                </div>
+
+                <div class="answer-section">
+                    <textarea @bind="currentAnswer" placeholder="Type your answer here..." rows="8"></textarea>
+                    <div class="answer-actions">
+                        <span class="char-count">@(currentAnswer?.Length ?? 0) characters</span>
+                        <button class="btn btn-primary" @onclick="SubmitAnswer" disabled="@(isSubmitting || string.IsNullOrWhiteSpace(currentAnswer))">
+                            @if (isSubmitting)
+                            {
+                                <span>Analyzing...</span>
+                            }
+                            else
+                            {
+                                <span>Submit Answer →</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+
+                @if (lastFeedback != null)
+                {
+                    <div class="feedback-panel">
+                        <div class="feedback-header">
+                            <h3>Feedback for Previous Answer</h3>
+                            <span class="feedback-score @GetScoreClass(lastFeedback.OverallScore)">@lastFeedback.OverallScore/100</span>
+                        </div>
+                        <div class="feedback-body">
+                            <div class="feedback-section">
+                                <h4>✅ Strengths</h4>
+                                <ul>
+                                    @foreach (var s in lastFeedback.Strengths)
+                                    {
+                                        <li>@s</li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="feedback-section">
+                                <h4>📈 Improvements</h4>
+                                <ul>
+                                    @foreach (var i in lastFeedback.AreasForImprovement)
+                                    {
+                                        <li>@i</li>
+                                    }
+                                </ul>
+                            </div>
+                            @if (!string.IsNullOrEmpty(lastFeedback.SuggestedAnswer))
+                            {
+                                <div class="feedback-section">
+                                    <h4>💡 Suggested Answer</h4>
+                                    <p class="suggested-answer">@lastFeedback.SuggestedAnswer</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .interview-page { max-width: 900px; margin: 0 auto; }
+
+    /* Setup Screen */
+    .setup-screen { padding: 2rem 0; }
+    .setup-header { text-align: center; margin-bottom: 3rem; }
+    .setup-header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .setup-header p { color: var(--text-secondary); }
+
+    .setup-form { background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 2rem; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.75rem; font-weight: 500; }
+    .form-group input[type="text"] { width: 100%; padding: 0.875rem 1rem; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); }
+    .form-group input:focus { outline: none; border-color: var(--primary); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .radio-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .radio-card { background: var(--bg-dark); padding: 1.25rem; border-radius: 12px; border: 2px solid var(--border); text-align: center; cursor: pointer; transition: all 0.2s; }
+    .radio-card:hover { border-color: var(--primary); }
+    .radio-card.selected { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+    .radio-card input { display: none; }
+    .radio-card .icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+    .radio-card .title { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+    .radio-card .desc { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .btn-large { width: 100%; padding: 1rem; font-size: 1.1rem; }
+
+    .tips-section { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+    .tips-section h3 { margin-bottom: 1rem; }
+    .tips-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .tip { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px; }
+    .tip-icon { font-size: 1.25rem; }
+
+    /* Interview Screen */
+    .interview-screen { padding: 1rem 0; }
+    .interview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem 1.5rem; background: var(--bg-card); border-radius: 12px; }
+    .progress-info { flex: 1; }
+    .progress-bar { height: 8px; background: var(--bg-dark); border-radius: 4px; margin-top: 0.5rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
+    .timer { padding: 0.5rem 1rem; background: var(--bg-dark); border-radius: 8px; font-weight: 600; }
+    .timer.warning { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    .question-section { background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .question-badge { display: inline-block; padding: 0.25rem 0.75rem; background: var(--primary); color: white; border-radius: 20px; font-size: 0.8rem; margin-bottom: 1rem; }
+    .question-text { font-size: 1.25rem; line-height: 1.6; }
+    .hint-btn { background: none; border: none; color: var(--primary); cursor: pointer; margin-top: 1rem; font-size: 0.9rem; }
+    .hint-text { margin-top: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px; color: var(--text-secondary); }
+
+    .answer-section { background: var(--bg-card); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .answer-section textarea { width: 100%; padding: 1rem; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); resize: vertical; font-size: 1rem; line-height: 1.6; }
+    .answer-section textarea:focus { outline: none; border-color: var(--primary); }
+    .answer-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+    .char-count { color: var(--text-secondary); font-size: 0.875rem; }
+
+    .feedback-panel { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+    .feedback-header { padding: 1rem 1.5rem; background: var(--bg-hover); display: flex; justify-content: space-between; align-items: center; }
+    .feedback-score { padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 600; }
+    .feedback-score.high { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .feedback-score.medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .feedback-score.low { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .feedback-body { padding: 1.5rem; display: grid; gap: 1rem; }
+    .feedback-section h4 { margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .feedback-section ul { padding-left: 1.25rem; color: var(--text-secondary); }
+    .suggested-answer { background: var(--bg-hover); padding: 1rem; border-radius: 8px; font-style: italic; }
+
+    /* Results Screen */
+    .results-screen { padding: 2rem 0; }
+    .results-header { text-align: center; margin-bottom: 2rem; }
+    .score-section { text-align: center; margin-bottom: 2rem; }
+    .main-score { display: inline-flex; align-items: baseline; font-size: 4rem; font-weight: 700; }
+    .main-score.high { color: #22c55e; }
+    .main-score.medium { color: #f59e0b; }
+    .main-score.low { color: #ef4444; }
+    .score-max { font-size: 1.5rem; color: var(--text-secondary); margin-left: 0.25rem; }
+    .score-label { color: var(--text-secondary); }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .result-card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+    .result-card h3 { margin-bottom: 1rem; }
+    .result-card ul { padding-left: 1.25rem; }
+    .result-card li { margin-bottom: 0.5rem; }
+
+    .feedback-section, .improvement-section { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .feedback-section h3, .improvement-section h3 { margin-bottom: 1rem; }
+    .improvement-section ol { padding-left: 1.5rem; }
+    .improvement-section li { margin-bottom: 0.75rem; }
+
+    .results-actions { display: flex; justify-content: center; gap: 1rem; }
+
+    .btn { padding: 0.75rem 1.5rem; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--bg-hover); color: var(--text-primary); }
+
+    @@media (max-width: 768px) {
+        .radio-cards { grid-template-columns: repeat(2, 1fr); }
+        .form-row { grid-template-columns: 1fr; }
+        .results-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+@code {
+    private string interviewType = "Behavioral";
+    private string targetCompany = "";
+    private string targetRole = "Software Engineer";
+    private int numberOfQuestions = 5;
+    private bool isStarting;
+
+    private MockInterviewSession? currentSession;
+    private InterviewQuestion? currentQuestion;
+    private int currentQuestionNumber = 1;
+    private string currentAnswer = "";
+    private int timeRemaining = 180;
+    private bool showHint;
+    private bool isSubmitting;
+    private AnswerFeedback? lastFeedback;
+    private bool sessionComplete;
+    private SessionSummary? sessionSummary;
+
+    private System.Threading.Timer? timer;
+
+    private async Task StartInterview()
+    {
+        isStarting = true;
+        var request = new MockInterviewRequest(interviewType, targetCompany, targetRole, numberOfQuestions);
+        currentSession = await Api.StartMockInterviewAsync(request);
+
+        if (currentSession != null)
+        {
+            currentQuestion = await Api.GetNextQuestionAsync(currentSession.SessionId);
+            timeRemaining = currentQuestion?.TimeLimitSeconds ?? 180;
+            StartTimer();
+        }
+        isStarting = false;
+    }
+
+    private void StartTimer()
+    {
+        timer = new System.Threading.Timer(async _ =>
+        {
+            if (timeRemaining > 0)
+            {
+                timeRemaining--;
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, 1000, 1000);
+    }
+
+    private async Task SubmitAnswer()
+    {
+        if (currentSession == null || string.IsNullOrWhiteSpace(currentAnswer)) return;
+
+        isSubmitting = true;
+        lastFeedback = await Api.SubmitAnswerAsync(currentSession.SessionId, currentAnswer);
+        isSubmitting = false;
+
+        currentAnswer = "";
+        showHint = false;
+        currentQuestionNumber++;
+
+        if (currentQuestionNumber > currentSession.TotalQuestions)
+        {
+            await EndInterview();
+        }
+        else
+        {
+            currentQuestion = await Api.GetNextQuestionAsync(currentSession.SessionId);
+            timeRemaining = currentQuestion?.TimeLimitSeconds ?? 180;
+        }
+    }
+
+    private async Task EndInterview()
+    {
+        timer?.Dispose();
+        if (currentSession != null)
+        {
+            sessionSummary = await Api.EndSessionAsync(currentSession.SessionId);
+            sessionComplete = true;
+        }
+    }
+
+    private void StartNewInterview()
+    {
+        currentSession = null;
+        currentQuestion = null;
+        currentQuestionNumber = 1;
+        currentAnswer = "";
+        lastFeedback = null;
+        sessionComplete = false;
+        sessionSummary = null;
+    }
+
+    private void ToggleHint() => showHint = !showHint;
+    private string GetScoreClass(int score) => score >= 80 ? "high" : score >= 60 ? "medium" : "low";
+
+    public void Dispose() => timer?.Dispose();
+}
