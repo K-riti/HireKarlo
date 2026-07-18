@@ -1,5 +1,6 @@
 # Render Blueprint - HireKarlo Platform
 # https://render.com/docs/blueprint-spec
+# Using 100% FREE AI services: Groq (Llama 3) + HuggingFace
 
 services:
   # Backend API
@@ -23,20 +24,15 @@ services:
         value: HireKarlo
       - key: Jwt__Audience
         value: HireKarlo
-      - key: AzureOpenAI__Endpoint
-        sync: false
-      - key: AzureOpenAI__ApiKey
-        sync: false
-      - key: AzureOpenAI__DeploymentName
-        value: gpt-4
-      - key: AzureOpenAI__EmbeddingDeploymentName
-        value: text-embedding-ada-002
-      - key: AzureAISearch__Endpoint
-        sync: false
-      - key: AzureAISearch__ApiKey
-        sync: false
-      - key: AzureAISearch__IndexName
-        value: hirekarlo-vectors
+      # FREE AI Services
+      - key: Groq__ApiKey
+        sync: false  # You'll add this manually (free from groq.com)
+      - key: Groq__Model
+        value: llama-3.3-70b-versatile
+      - key: HuggingFace__ApiKey
+        sync: false  # You'll add this manually (free from huggingface.co)
+      - key: HuggingFace__Model
+        value: sentence-transformers/all-MiniLM-L6-v2
     healthCheckPath: /health
     plan: free
 

@@ -88,17 +88,36 @@ builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<IRoadmapItemRepository, RoadmapItemRepository>();
 builder.Services.AddScoped<IInterviewDigestEntryRepository, InterviewDigestEntryRepository>();
 
-// Add Azure OpenAI Services
-builder.Services.Configure<AzureOpenAISettings>(
-    builder.Configuration.GetSection("AzureOpenAI"));
-builder.Services.Configure<AzureAISearchSettings>(
-    builder.Configuration.GetSection("AzureAISearch"));
+// AI Services Configuration - Use FREE providers
+var useAzure = !string.IsNullOrEmpty(builder.Configuration["AzureOpenAI:ApiKey"]);
+
+if (useAzure)
+{
+    // Azure OpenAI (if configured)
+    builder.Services.Configure<AzureOpenAISettings>(
+        builder.Configuration.GetSection("AzureOpenAI"));
+    builder.Services.Configure<AzureAISearchSettings>(
+        builder.Configuration.GetSection("AzureAISearch"));
+    builder.Services.AddSingleton<IOpenAIService, AzureOpenAIService>();
+    builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
+    builder.Services.AddSingleton<IVectorStoreService, AzureAISearchService>();
+}
+else
+{
+    // FREE alternatives: Groq + HuggingFace + In-Memory Vector Store
+    builder.Services.Configure<GroqSettings>(
+        builder.Configuration.GetSection("Groq"));
+    builder.Services.Configure<HuggingFaceSettings>(
+        builder.Configuration.GetSection("HuggingFace"));
+
+    builder.Services.AddHttpClient<IOpenAIService, GroqService>();
+    builder.Services.AddHttpClient<IEmbeddingService, HuggingFaceEmbeddingService>();
+    builder.Services.AddSingleton<IVectorStoreService, InMemoryVectorStore>();
+}
+
 builder.Services.Configure<JobFetchSettings>(
     builder.Configuration.GetSection("JobFetch"));
 
-builder.Services.AddSingleton<IOpenAIService, AzureOpenAIService>();
-builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
-builder.Services.AddSingleton<IVectorStoreService, AzureAISearchService>();
 builder.Services.AddSingleton<RAGOrchestrator>();
 builder.Services.AddSingleton<IAdvancedAIService, AdvancedAIService>();
 
