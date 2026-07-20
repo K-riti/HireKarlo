@@ -34,7 +34,7 @@ if (isProduction)
     };
     builder = WebApplication.CreateEmptyBuilder(options);
 
-    // Configure essential services that CreateEmptyBuilder doesn't add
+    // Configure Kestrel web server
     builder.WebHost.UseKestrelCore();
 
     // Manually add configuration without file watching
@@ -43,8 +43,9 @@ if (isProduction)
         .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
         .AddEnvironmentVariables();
 
-    // Add logging
+    // Add essential services that CreateEmptyBuilder doesn't include
     builder.Logging.AddConsole();
+    builder.Services.AddRouting();  // Required for MapControllers, MapHealthChecks, etc.
 }
 else
 {
