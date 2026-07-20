@@ -1,5 +1,5 @@
 # HireKarlo API Dockerfile
-# Cache bust: 2026-07-20-v2 - Fix inotify + postgres connection
+# Cache bust: 2026-07-20-v4 - Suppress pending model changes warning
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 10000

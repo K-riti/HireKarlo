@@ -125,6 +125,9 @@ builder.Services.AddDbContext<HireKarloDbContext>(options =>
         Console.WriteLine("[Startup] Unknown connection string format, trying PostgreSQL");
         options.UseNpgsql(connectionString);
     }
+
+    // Suppress pending model changes warning for auto-migration scenarios
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
 // Helper function to convert postgres:// URL to Npgsql connection string
