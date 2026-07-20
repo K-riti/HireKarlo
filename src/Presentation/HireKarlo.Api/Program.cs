@@ -17,21 +17,28 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-// Disable file watching in production (fixes Render free tier inotify limit)
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    ContentRootPath = Directory.GetCurrentDirectory()
-});
+// Detect if we're in production (Render sets RENDER=true or we can check DOTNET_ENVIRONMENT)
+var isProduction = Environment.GetEnvironmentVariable("RENDER") == "true" ||
+                   Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Production" ||
+                   Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
 
-// Disable config file watching to avoid inotify limits on Render
-if (!builder.Environment.IsDevelopment())
+WebApplicationBuilder builder;
+
+if (isProduction)
 {
-    builder.Configuration.Sources.Clear();
+    // In production: Create builder without default configuration to avoid inotify issues
+    builder = WebApplication.CreateSlimBuilder(args);
+
+    // Manually add configuration without file watching
     builder.Configuration
         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-        .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+        .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
         .AddEnvironmentVariables();
+}
+else
+{
+    // In development: Use normal builder with file watching
+    builder = WebApplication.CreateBuilder(args);
 }
 
 // Add services to the container
