@@ -1,9 +1,11 @@
 # HireKarlo API Dockerfile
+# Cache bust: 2026-07-20-v2 - Fix inotify + postgres connection
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 10000
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG CACHEBUST=1
 WORKDIR /src
 
 # Copy solution and project files
@@ -20,15 +22,16 @@ COPY src/Presentation/HireKarlo.Api/HireKarlo.Api.csproj src/Presentation/HireKa
 # Restore
 RUN dotnet restore src/Presentation/HireKarlo.Api/HireKarlo.Api.csproj
 
-# Copy everything else
+# Copy everything else and invalidate cache
 COPY . .
+RUN echo "Build timestamp: $(date)"
 
 # Build
 WORKDIR /src/src/Presentation/HireKarlo.Api
-RUN dotnet build -c Release -o /app/build
+RUN dotnet build -c Release -o /app/build --no-restore
 
 FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false --no-restore
 
 FROM base AS final
 WORKDIR /app
