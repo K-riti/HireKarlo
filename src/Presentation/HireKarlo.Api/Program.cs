@@ -78,11 +78,18 @@ builder.Services.AddRateLimiter(options =>
 
 // Add DbContext - supports both SQL Server and PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Convert Render's postgres:// URL format to Npgsql format if needed
+if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
+{
+    connectionString = ConvertPostgresUrlToConnectionString(connectionString);
+}
+
 builder.Services.AddDbContext<HireKarloDbContext>(options =>
 {
-    // Detect PostgreSQL connection string (Render uses postgres://)
-    if (connectionString?.Contains("postgres", StringComparison.OrdinalIgnoreCase) == true ||
-        connectionString?.Contains("Host=", StringComparison.OrdinalIgnoreCase) == true)
+    // Detect PostgreSQL connection string
+    if (connectionString?.Contains("Host=", StringComparison.OrdinalIgnoreCase) == true ||
+        connectionString?.Contains("postgres", StringComparison.OrdinalIgnoreCase) == true)
     {
         options.UseNpgsql(connectionString);
     }
@@ -91,6 +98,21 @@ builder.Services.AddDbContext<HireKarloDbContext>(options =>
         options.UseSqlServer(connectionString);
     }
 });
+
+// Helper function to convert postgres:// URL to Npgsql connection string
+static string ConvertPostgresUrlToConnectionString(string url)
+{
+    // postgres://user:password@host:port/database
+    var uri = new Uri(url);
+    var userInfo = uri.UserInfo.Split(':');
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.AbsolutePath.TrimStart('/');
+    var username = userInfo.Length > 0 ? userInfo[0] : "";
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
 
 // Add Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
