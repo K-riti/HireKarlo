@@ -79,39 +79,82 @@ builder.Services.AddRateLimiter(options =>
 // Add DbContext - supports both SQL Server and PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Convert Render's postgres:// URL format to Npgsql format if needed
-if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
+// Also check DATABASE_URL (Render sometimes uses this)
+if (string.IsNullOrEmpty(connectionString))
+{
+    connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+}
+
+// Convert Render's postgres:// or postgresql:// URL format to Npgsql format if needed
+if (!string.IsNullOrEmpty(connectionString) && 
+    (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
 {
     connectionString = ConvertPostgresUrlToConnectionString(connectionString);
 }
 
+// Log connection string info for debugging (mask password)
+var maskedConnStr = connectionString != null && connectionString.Length > 20 
+    ? connectionString.Substring(0, 20) + "..." 
+    : connectionString ?? "NULL";
+Console.WriteLine($"[Startup] Connection string prefix: {maskedConnStr}");
+
 builder.Services.AddDbContext<HireKarloDbContext>(options =>
 {
-    // Detect PostgreSQL connection string
-    if (connectionString?.Contains("Host=", StringComparison.OrdinalIgnoreCase) == true ||
-        connectionString?.Contains("postgres", StringComparison.OrdinalIgnoreCase) == true)
+    if (string.IsNullOrEmpty(connectionString))
     {
+        Console.WriteLine("[Startup] WARNING: No connection string found!");
+        // Use in-memory for testing if no connection string
+        options.UseInMemoryDatabase("HireKarlo");
+    }
+    // Detect PostgreSQL connection string
+    else if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+             connectionString.Contains("Server=", StringComparison.OrdinalIgnoreCase) && 
+             connectionString.Contains("5432"))
+    {
+        Console.WriteLine("[Startup] Using PostgreSQL");
         options.UseNpgsql(connectionString);
+    }
+    else if (connectionString.Contains("Server=", StringComparison.OrdinalIgnoreCase) ||
+             connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine("[Startup] Using SQL Server");
+        options.UseSqlServer(connectionString);
     }
     else
     {
-        options.UseSqlServer(connectionString);
+        Console.WriteLine("[Startup] Unknown connection string format, trying PostgreSQL");
+        options.UseNpgsql(connectionString);
     }
 });
 
 // Helper function to convert postgres:// URL to Npgsql connection string
 static string ConvertPostgresUrlToConnectionString(string url)
 {
-    // postgres://user:password@host:port/database
-    var uri = new Uri(url);
-    var userInfo = uri.UserInfo.Split(':');
-    var host = uri.Host;
-    var port = uri.Port > 0 ? uri.Port : 5432;
-    var database = uri.AbsolutePath.TrimStart('/');
-    var username = userInfo.Length > 0 ? userInfo[0] : "";
-    var password = userInfo.Length > 1 ? userInfo[1] : "";
+    try
+    {
+        // Handle both postgres:// and postgresql://
+        if (url.StartsWith("postgresql://"))
+        {
+            url = "postgres" + url.Substring("postgresql".Length);
+        }
 
-    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':');
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+
+        var result = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        Console.WriteLine($"[Startup] Converted postgres URL to: Host={host};Port={port};Database={database};Username={username};Password=***");
+        return result;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] ERROR converting postgres URL: {ex.Message}");
+        throw;
+    }
 }
 
 // Add Repositories
