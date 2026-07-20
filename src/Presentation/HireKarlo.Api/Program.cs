@@ -275,9 +275,11 @@ if (!app.Environment.IsDevelopment())
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseDeveloperExceptionPage();
 }
+
+// Enable OpenAPI/Swagger in all environments for API documentation
+app.MapOpenApi();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowBlazor");
@@ -286,6 +288,14 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Root endpoint for health/status check
+app.MapGet("/", () => Results.Ok(new 
+{ 
+    service = "HireKarlo API",
+    status = "running",
+    version = "1.0.0",
+    documentation = "/openapi/v1.json"
+}));
 
 app.MapControllers();
 app.MapHealthChecks("/health");
