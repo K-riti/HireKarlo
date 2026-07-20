@@ -26,14 +26,25 @@ WebApplicationBuilder builder;
 
 if (isProduction)
 {
-    // In production: Create builder without default configuration to avoid inotify issues
-    builder = WebApplication.CreateSlimBuilder(args);
+    // In production: Create empty builder to completely avoid inotify file watchers
+    var options = new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = Directory.GetCurrentDirectory()
+    };
+    builder = WebApplication.CreateEmptyBuilder(options);
+
+    // Configure essential services that CreateEmptyBuilder doesn't add
+    builder.WebHost.UseKestrelCore();
 
     // Manually add configuration without file watching
     builder.Configuration
         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
         .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
         .AddEnvironmentVariables();
+
+    // Add logging
+    builder.Logging.AddConsole();
 }
 else
 {
