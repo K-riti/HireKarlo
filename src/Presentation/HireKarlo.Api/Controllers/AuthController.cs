@@ -53,6 +53,28 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Login with email/password
+    /// </summary>
+    [HttpPost("login")]
+    public async Task<ActionResult<AuthResult>> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(new { error = "Email and password are required" });
+        }
+
+        var result = await _authService.LoginWithEmailAsync(request.Email, request.Password, cancellationToken);
+
+        if (!result.Success)
+            return BadRequest(new { error = result.Error });
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Register with email/password
     /// </summary>
     [HttpPost("register")]
@@ -65,6 +87,11 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(request.LastName))
         {
             return BadRequest(new { error = "Email, first name, and last name are required" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+        {
+            return BadRequest(new { error = "Password must be at least 6 characters" });
         }
 
         var result = await _authService.RegisterWithEmailAsync(request, cancellationToken);
@@ -266,4 +293,10 @@ public record OAuthLoginRequest
     public string? GoogleId { get; init; }
     public string? LinkedInId { get; init; }
     public string? Provider { get; init; }
+}
+
+public record LoginRequest
+{
+    public string Email { get; init; } = string.Empty;
+    public string Password { get; init; } = string.Empty;
 }

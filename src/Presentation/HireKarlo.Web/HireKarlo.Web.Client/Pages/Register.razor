@@ -132,13 +132,14 @@
         try
         {
             var result = await Api.RegisterAsync(email, firstName, lastName, password);
-            if (result != null && !string.IsNullOrEmpty(result.Token))
+            var token = result?.Token ?? result?.AccessToken;
+            if (result != null && result.Success && !string.IsNullOrEmpty(token))
             {
-                await AuthState.LoginAsync(result.Token, new UserInfo
+                await AuthState.LoginAsync(token, new UserInfo
                 {
-                    Id = result.UserId,
-                    Email = result.Email,
-                    Name = result.Name
+                    Id = result.UserId != Guid.Empty ? result.UserId : Guid.NewGuid(),
+                    Email = result.Email ?? email,
+                    Name = result.Name ?? $"{firstName} {lastName}"
                 });
                 Navigation.NavigateTo("/");
             }

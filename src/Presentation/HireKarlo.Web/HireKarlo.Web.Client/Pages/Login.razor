@@ -74,20 +74,29 @@
         isLoading = true;
         errorMessage = "";
 
-        var result = await Api.LoginAsync(email, password);
-        if (result != null && !string.IsNullOrEmpty(result.Token))
+        try
         {
-            await AuthState.LoginAsync(result.Token, new UserInfo
+            var result = await Api.LoginAsync(email, password);
+            var token = result?.Token ?? result?.AccessToken;
+            if (result != null && result.Success && !string.IsNullOrEmpty(token))
             {
-                Id = result.UserId,
-                Email = result.Email,
-                Name = result.Name
-            });
-            Navigation.NavigateTo("/");
+                await AuthState.LoginAsync(token, new UserInfo
+                {
+                    Id = result.UserId != Guid.Empty ? result.UserId : Guid.NewGuid(),
+                    Email = result.Email ?? email,
+                    Name = result.Name ?? ""
+                });
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = result?.Error ?? "Invalid email or password";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Invalid email or password";
+            errorMessage = "Unable to connect to server. Please try again.";
+            Console.WriteLine($"Login error: {ex.Message}");
         }
 
         isLoading = false;

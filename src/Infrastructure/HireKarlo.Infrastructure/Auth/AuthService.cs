@@ -170,32 +170,100 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> LoginWithEmailAsync(string email, string password, CancellationToken cancellationToken = default)
     {
-        // For now, we'll focus on social logins. Email/password would require password hashing storage.
-        return new AuthResult { Success = false, Error = "Email login not yet implemented. Please use Google or LinkedIn." };
+        try
+        {
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            if (user == null)
+            {
+                return new AuthResult { Success = false, Error = "No account found with this email. Please sign up first." };
+            }
+
+            // Check if user has a password hash (registered with email)
+            if (string.IsNullOrEmpty(user.PasswordHash))
+            {
+                return new AuthResult { Success = false, Error = "This account was created with Google or LinkedIn. Please use social login." };
+            }
+
+            // Verify password
+            if (!VerifyPassword(password, user.PasswordHash))
+            {
+                return new AuthResult { Success = false, Error = "Invalid password" };
+            }
+
+            // Update last login
+            user.LastLoginAt = DateTime.UtcNow;
+            user.LastLoginProvider = "Email";
+            await _userRepository.UpdateAsync(user, cancellationToken);
+
+            return GenerateAuthResult(user, false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during email login");
+            return new AuthResult { Success = false, Error = "Login failed. Please try again." };
+        }
     }
 
     public async Task<AuthResult> RegisterWithEmailAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
-        if (existingUser != null)
-            return new AuthResult { Success = false, Error = "Email already registered" };
-
-        var user = new User
+        try
         {
-            Id = Guid.NewGuid(),
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            DisplayName = $"{request.FirstName} {request.LastName}",
-            LastLoginAt = DateTime.UtcNow,
-            LastLoginProvider = "Email",
-            SubscribedToNewsletter = true,
-            SubscribedToMatchAlerts = true,
-            SubscribedToWeeklyDigest = true
-        };
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (existingUser != null)
+                return new AuthResult { Success = false, Error = "Email already registered. Please log in instead." };
 
-        await _userRepository.AddAsync(user, cancellationToken);
-        return GenerateAuthResult(user, true);
+            // Hash the password
+            var passwordHash = HashPassword(request.Password);
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = $"{request.FirstName} {request.LastName}",
+                PasswordHash = passwordHash,
+                LastLoginAt = DateTime.UtcNow,
+                LastLoginProvider = "Email",
+                SubscribedToNewsletter = true,
+                SubscribedToMatchAlerts = true,
+                SubscribedToWeeklyDigest = true
+            };
+
+            await _userRepository.AddAsync(user, cancellationToken);
+            return GenerateAuthResult(user, true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during email registration");
+            return new AuthResult { Success = false, Error = "Registration failed. Please try again." };
+        }
+    }
+
+    private static string HashPassword(string password)
+    {
+        using var sha256 = SHA256.Create();
+        var salt = Guid.NewGuid().ToString();
+        var saltedPassword = $"{salt}:{password}";
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
+        var hash = Convert.ToBase64String(hashBytes);
+        return $"{salt}:{hash}";
+    }
+
+    private static bool VerifyPassword(string password, string storedHash)
+    {
+        var parts = storedHash.Split(':');
+        if (parts.Length != 2) return false;
+
+        var salt = parts[0];
+        var hash = parts[1];
+
+        using var sha256 = SHA256.Create();
+        var saltedPassword = $"{salt}:{password}";
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
+        var computedHash = Convert.ToBase64String(hashBytes);
+
+        return hash == computedHash;
     }
 
     public async Task<AuthResult> LoginOrRegisterWithOAuthAsync(string email, string name, string provider, string? providerId, CancellationToken cancellationToken = default)

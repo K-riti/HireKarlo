@@ -11,7 +11,50 @@ public class ApiClient
         _http = http;
     }
 
-    // Auth
+    // Auth - Email/Password
+    public async Task<AuthResult?> LoginAsync(string email, string password)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/auth/login", new { Email = email, Password = password });
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<AuthResult>();
+            }
+            var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            return new AuthResult { Success = false, Error = error?.Error ?? "Login failed" };
+        }
+        catch (Exception ex)
+        {
+            return new AuthResult { Success = false, Error = $"Connection error: {ex.Message}" };
+        }
+    }
+
+    public async Task<AuthResult?> RegisterAsync(string email, string firstName, string lastName, string password)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/auth/register", new 
+            { 
+                Email = email, 
+                FirstName = firstName, 
+                LastName = lastName, 
+                Password = password 
+            });
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<AuthResult>();
+            }
+            var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            return new AuthResult { Success = false, Error = error?.Error ?? "Registration failed" };
+        }
+        catch (Exception ex)
+        {
+            return new AuthResult { Success = false, Error = $"Connection error: {ex.Message}" };
+        }
+    }
+
+    // Auth - Social Login
     public async Task<AuthResult?> LoginWithGoogleAsync(string idToken)
         => await _http.PostAsJsonAsync<AuthResult>("api/auth/google", new { IdToken = idToken });
 
@@ -111,12 +154,6 @@ public class ApiClient
 
     public async Task<LearningPathDto?> GenerateSkillPathAsync(string skill, string level)
         => await _http.PostAsJsonAsync<LearningPathDto>("api/learningpath/generate/skill", new { Skill = skill, Level = level });
-
-    public async Task<AuthResult?> LoginAsync(string email, string password)
-        => await _http.PostAsJsonAsync<AuthResult>("api/auth/login", new { Email = email, Password = password });
-
-    public async Task<RegisterResult?> RegisterAsync(string email, string firstName, string lastName, string password)
-        => await _http.PostAsJsonAsync<RegisterResult>("api/auth/register", new { Email = email, FirstName = firstName, LastName = lastName, Password = password });
 }
 
 public static class HttpClientExtensions
@@ -130,8 +167,18 @@ public static class HttpClientExtensions
 
 #region DTOs
 
-public record AuthResult(string? Token, Guid UserId, string Email, string Name);
-public record RegisterResult(string? Token, Guid UserId, string Email, string Name, string? Error);
+public record AuthResult
+{
+    public bool Success { get; init; }
+    public string? Token { get; init; }
+    public string? AccessToken { get; init; }
+    public string? RefreshToken { get; init; }
+    public Guid UserId { get; init; }
+    public string? Email { get; init; }
+    public string? Name { get; init; }
+    public string? Error { get; init; }
+    public bool IsNewUser { get; init; }
+}
 public class UserInfo { public Guid Id { get; set; } public string Email { get; set; } = ""; public string Name { get; set; } = ""; public string? ProfilePictureUrl { get; set; } }
 
 public record DashboardData
@@ -221,5 +268,7 @@ public record HeadlineResult(string Original, List<string> Suggestions, int Keyw
 public record AboutResult(string Original, string Optimized, int KeywordDensityBefore, int KeywordDensityAfter);
 
 public record ChatResponse(string Message, List<string>? Suggestions, string? ActionType);
+
+public record ErrorResponse(string? Error);
 
 #endregion
