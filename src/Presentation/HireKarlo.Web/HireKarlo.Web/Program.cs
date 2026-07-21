@@ -4,6 +4,9 @@ using HireKarlo.Web.Components;
 using Blazored.LocalStorage;
 using Blazored.Toast;
 
+// Disable file watching for configuration to avoid inotify limits in containerized environments
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder:reloadConfigOnChange", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
