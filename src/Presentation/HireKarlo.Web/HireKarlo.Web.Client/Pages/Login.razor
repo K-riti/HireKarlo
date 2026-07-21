@@ -93,15 +93,19 @@
         isLoading = false;
     }
 
-    private async Task LoginWithGoogle()
+    private Task LoginWithGoogle()
     {
-        // Redirect to Google OAuth
-        Navigation.NavigateTo("/api/auth/google", forceLoad: true);
+        // OAuth coming soon - for now show message
+        errorMessage = "Google Sign-In coming soon! Please use email/password login.";
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    private async Task LoginWithLinkedIn()
+    private Task LoginWithLinkedIn()
     {
-        // Redirect to LinkedIn OAuth
-        Navigation.NavigateTo("/api/auth/linkedin", forceLoad: true);
+        // OAuth coming soon - for now show message  
+        errorMessage = "LinkedIn Sign-In coming soon! Please use email/password login.";
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 }

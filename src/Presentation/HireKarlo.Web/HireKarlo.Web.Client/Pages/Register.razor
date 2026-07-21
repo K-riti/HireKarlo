@@ -160,11 +160,15 @@
 
     private void RegisterWithGoogle()
     {
-        Navigation.NavigateTo("/api/auth/google", forceLoad: true);
+        // OAuth coming soon - for now show message
+        errorMessage = "Google Sign-Up coming soon! Please use email/password registration.";
+        StateHasChanged();
     }
 
     private void RegisterWithLinkedIn()
     {
-        Navigation.NavigateTo("/api/auth/linkedin", forceLoad: true);
+        // OAuth coming soon - for now show message
+        errorMessage = "LinkedIn Sign-Up coming soon! Please use email/password registration.";
+        StateHasChanged();
     }
 }
