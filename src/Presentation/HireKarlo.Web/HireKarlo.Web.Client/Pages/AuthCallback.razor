@@ -1,0 +1,121 @@
+@page "/auth-callback"
+@rendermode InteractiveAuto
+@inject NavigationManager Navigation
+@inject AuthStateProvider AuthState
+@inject IJSRuntime JS
+
+<PageTitle>Signing in... - HireKarlo</PageTitle>
+
+<div class="auth-callback-page">
+    <div class="callback-container">
+        <div class="loading-spinner"></div>
+        <h2>@message</h2>
+        <p>Please wait while we complete your sign-in...</p>
+    </div>
+</div>
+
+<style>
+    .auth-callback-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .callback-container {
+        text-align: center;
+        padding: 3rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(99, 102, 241, 0.3);
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1.5rem;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .callback-container h2 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .callback-container p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+</style>
+
+@code {
+    private string message = "Completing sign-in...";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Read token and user info from cookies set by the server
+                var token = await JS.InvokeAsync<string>("getCookie", "auth_token");
+                var userInfoJson = await JS.InvokeAsync<string>("getCookie", "user_info");
+
+                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(userInfoJson))
+                {
+                    // Parse user info
+                    var userInfo = System.Text.Json.JsonSerializer.Deserialize<UserInfoCookie>(userInfoJson, 
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (userInfo != null)
+                    {
+                        // Store in localStorage via AuthStateProvider
+                        await AuthState.LoginAsync(token, new UserInfo
+                        {
+                            Id = userInfo.UserId,
+                            Email = userInfo.Email ?? "",
+                            Name = userInfo.Name ?? ""
+                        });
+
+                        message = "Success! Redirecting...";
+                        StateHasChanged();
+
+                        // Clear the cookies (optional, since we've moved to localStorage)
+                        await JS.InvokeVoidAsync("deleteCookie", "auth_token");
+                        await JS.InvokeVoidAsync("deleteCookie", "user_info");
+
+                        // Small delay for UX
+                        await Task.Delay(500);
+                        Navigation.NavigateTo("/dashboard", forceLoad: true);
+                        return;
+                    }
+                }
+
+                message = "Sign-in failed";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login?error=Could not complete sign-in");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Auth callback error: {ex.Message}");
+                message = "An error occurred";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login?error=Authentication error");
+            }
+        }
+    }
+
+    private class UserInfoCookie
+    {
+        public Guid UserId { get; set; }
+        public string? Email { get; set; }
+        public string? Name { get; set; }
+    }
+}

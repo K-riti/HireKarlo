@@ -1,4 +1,5 @@
 @page "/linkedin"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
 @inject NavigationManager Navigation
@@ -171,14 +172,22 @@
     private ProfileInput profile = new();
     private OptimizationResult? result;
     private bool isOptimizing = false;
+    private bool isInitialized = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Pre-fill with demo data if user is authenticated
-        if (AuthState.IsAuthenticated)
+        if (firstRender && !isInitialized)
         {
-            profile.Headline = "Software Engineer";
-            profile.Skills = "C#, .NET, Azure, SQL Server";
+            await AuthState.InitializeAsync();
+            isInitialized = true;
+
+            // Pre-fill with demo data if user is authenticated
+            if (AuthState.IsAuthenticated)
+            {
+                profile.Headline = "Software Engineer";
+                profile.Skills = "C#, .NET, Azure, SQL Server";
+                StateHasChanged();
+            }
         }
     }
 

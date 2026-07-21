@@ -1,4 +1,5 @@
 @page "/resumes"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 @inject IJSRuntime JS
 
@@ -274,9 +275,13 @@
     private IBrowserFile? uploadFile;
     private bool isUploading;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        resumes = await Api.GetResumesAsync();
+        if (firstRender)
+        {
+            resumes = await Api.GetResumesAsync();
+            StateHasChanged();
+        }
     }
 
     private void SelectResume(ResumeDto resume)

@@ -98,7 +98,8 @@ public class AuthController : Controller
                         Expires = DateTimeOffset.UtcNow.AddDays(7)
                     });
 
-                    return Redirect("/?login=success");
+                    // Redirect to auth callback page which will read cookies and store in localStorage
+                    return Redirect("/auth-callback");
                 }
             }
 
@@ -237,7 +238,8 @@ public class AuthController : Controller
                         Expires = DateTimeOffset.UtcNow.AddDays(7)
                     });
 
-                    return Redirect("/?login=success");
+                    // Redirect to auth callback page which will read cookies and store in localStorage
+                    return Redirect("/auth-callback");
                 }
             }
 

@@ -1,4 +1,5 @@
 ﻿@page "/"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
 
@@ -273,12 +274,27 @@
 
 @code {
     private DashboardData? dashboard;
+    private bool isInitialized = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (AuthState.IsAuthenticated)
+        if (firstRender && !isInitialized)
         {
-            dashboard = await Api.GetDashboardAsync();
+            await AuthState.InitializeAsync();
+            isInitialized = true;
+
+            if (AuthState.IsAuthenticated)
+            {
+                try
+                {
+                    dashboard = await Api.GetDashboardAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading dashboard: {ex.Message}");
+                }
+            }
+            StateHasChanged();
         }
     }
 

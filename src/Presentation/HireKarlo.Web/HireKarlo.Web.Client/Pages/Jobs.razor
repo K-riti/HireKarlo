@@ -1,4 +1,5 @@
 @page "/jobs"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 
 <PageTitle>Job Search - HireKarlo</PageTitle>
@@ -170,9 +171,13 @@
     private string sortBy = "relevance";
     private bool isLoading;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await SearchJobs();
+        if (firstRender)
+        {
+            await SearchJobs();
+            StateHasChanged();
+        }
     }
 
     private async Task SearchJobs()

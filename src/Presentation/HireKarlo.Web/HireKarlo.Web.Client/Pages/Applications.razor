@@ -1,4 +1,5 @@
 @page "/applications"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
 @inject NavigationManager Navigation
@@ -185,15 +186,14 @@
         .Where(a => string.IsNullOrEmpty(statusFilter) || a.Status == statusFilter)
         .OrderByDescending(a => a.AppliedDate);
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!AuthState.IsAuthenticated)
+        if (firstRender)
         {
-            Navigation.NavigateTo("/login");
-            return;
+            await AuthState.InitializeAsync();
+            await LoadApplications();
+            StateHasChanged();
         }
-
-        await LoadApplications();
     }
 
     private async Task LoadApplications()

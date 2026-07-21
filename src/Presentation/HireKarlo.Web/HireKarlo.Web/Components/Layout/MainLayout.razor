@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@rendermode InteractiveAuto
 @inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <div class="app-container">
     <!-- Sidebar -->
@@ -132,6 +135,28 @@
     private bool isDarkMode = false;
     private bool chatOpen = false;
     private string chatMessage = "";
+    private bool isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isInitialized)
+        {
+            await AuthState.InitializeAsync();
+            isInitialized = true;
+            AuthState.OnAuthStateChanged += HandleAuthStateChanged;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
 
     private void ToggleSidebar() => sidebarCollapsed = !sidebarCollapsed;
     private void ToggleTheme() => isDarkMode = !isDarkMode;
@@ -140,6 +165,7 @@
     private async Task Logout()
     {
         await AuthState.LogoutAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 
     private void HandleChatKeyPress(KeyboardEventArgs e)

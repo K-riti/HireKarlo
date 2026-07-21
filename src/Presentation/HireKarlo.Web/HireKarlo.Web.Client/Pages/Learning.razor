@@ -1,4 +1,5 @@
 @page "/learning"
+@rendermode InteractiveAuto
 @inject ApiClient Api
 
 <PageTitle>Learning Path - HireKarlo</PageTitle>
@@ -200,9 +201,13 @@
     private QuizQuestionDto? currentQuestion => currentQuiz?.Questions.ElementAtOrDefault(currentQuestionIndex);
     private string? selectedAnswer;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        activePath = await Api.GetActiveLearningPathAsync();
+        if (firstRender)
+        {
+            activePath = await Api.GetActiveLearningPathAsync();
+            StateHasChanged();
+        }
     }
 
     private void ShowPathCreator(string type)
