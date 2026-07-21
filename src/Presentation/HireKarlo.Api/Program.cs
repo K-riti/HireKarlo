@@ -265,10 +265,9 @@ if (!app.Environment.IsDevelopment())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    // Enable OpenAPI only in development - schema generation may fail on some types
+    app.MapOpenApi();
 }
-
-// Enable OpenAPI/Swagger in all environments for API documentation
-app.MapOpenApi();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowBlazor");
@@ -278,12 +277,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Root endpoint for health/status check
-app.MapGet("/", () => Results.Ok(new 
+app.MapGet("/", (IWebHostEnvironment env) => Results.Ok(new 
 { 
     service = "HireKarlo API",
     status = "running",
     version = "1.0.0",
-    documentation = "/openapi/v1.json"
+    environment = env.EnvironmentName,
+    endpoints = new { health = "/health", api = "/api" }
 }));
 
 app.MapControllers();
