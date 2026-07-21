@@ -1,5 +1,5 @@
 @page "/login"
-@rendermode InteractiveWebAssembly
+@rendermode InteractiveAuto
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
 @inject NavigationManager Navigation
@@ -14,21 +14,22 @@
         </div>
 
         <div class="social-login">
-            <button class="btn-social google" @onclick="LoginWithGoogle">
+            @* Use anchor tags for OAuth - they work immediately without waiting for WASM *@
+            <a href="/auth/google" class="btn-social google">
                 <span class="icon">G</span>
                 <span>Continue with Google</span>
-            </button>
-            <button class="btn-social linkedin" @onclick="LoginWithLinkedIn">
+            </a>
+            <a href="/auth/linkedin" class="btn-social linkedin">
                 <span class="icon">in</span>
                 <span>Continue with LinkedIn</span>
-            </button>
+            </a>
         </div>
 
         <div class="divider">
             <span>or</span>
         </div>
 
-        <form class="login-form" @onsubmit="HandleLogin">
+        <form class="login-form" @onsubmit="HandleLogin" @onsubmit:preventDefault>
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" @bind="email" placeholder="you@example.com" required />
@@ -42,7 +43,15 @@
                 <div class="error-message">@errorMessage</div>
             }
             <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
-                @(isLoading ? "Signing in..." : "Sign In")
+                @if (isLoading)
+                {
+                    <span class="spinner"></span>
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
             </button>
         </form>
 
@@ -101,17 +110,5 @@
         }
 
         isLoading = false;
-    }
-
-    private void LoginWithGoogle()
-    {
-        // Redirect to Google OAuth endpoint
-        Navigation.NavigateTo("/auth/google", forceLoad: true);
-    }
-
-    private void LoginWithLinkedIn()
-    {
-        // Redirect to LinkedIn OAuth endpoint
-        Navigation.NavigateTo("/auth/linkedin", forceLoad: true);
     }
 }
