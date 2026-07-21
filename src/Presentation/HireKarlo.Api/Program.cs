@@ -17,41 +17,11 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-// Detect if we're in production (Render sets RENDER=true or we can check DOTNET_ENVIRONMENT)
-var isProduction = Environment.GetEnvironmentVariable("RENDER") == "true" ||
-                   Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Production" ||
-                   Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+// Disable file watching for configuration to avoid inotify limits in containerized environments
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder:reloadConfigOnChange", "false");
 
-WebApplicationBuilder builder;
-
-if (isProduction)
-{
-    // In production: Create empty builder to completely avoid inotify file watchers
-    var options = new WebApplicationOptions
-    {
-        Args = args,
-        ContentRootPath = Directory.GetCurrentDirectory()
-    };
-    builder = WebApplication.CreateEmptyBuilder(options);
-
-    // Configure Kestrel web server
-    builder.WebHost.UseKestrelCore();
-
-    // Manually add configuration without file watching
-    builder.Configuration
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-        .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
-        .AddEnvironmentVariables();
-
-    // Add essential services that CreateEmptyBuilder doesn't include
-    builder.Logging.AddConsole();
-    builder.Services.AddRouting();  // Required for MapControllers, MapHealthChecks, etc.
-}
-else
-{
-    // In development: Use normal builder with file watching
-    builder = WebApplication.CreateBuilder(args);
-}
+// Use standard builder - file watching is now disabled via environment variable
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
