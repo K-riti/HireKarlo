@@ -160,15 +160,13 @@
 
     private void RegisterWithGoogle()
     {
-        // OAuth coming soon - for now show message
-        errorMessage = "Google Sign-Up coming soon! Please use email/password registration.";
-        StateHasChanged();
+        // Redirect to Google OAuth endpoint (same as login - will create account if needed)
+        Navigation.NavigateTo("/auth/google", forceLoad: true);
     }
 
     private void RegisterWithLinkedIn()
     {
-        // OAuth coming soon - for now show message
-        errorMessage = "LinkedIn Sign-Up coming soon! Please use email/password registration.";
-        StateHasChanged();
+        // Redirect to LinkedIn OAuth endpoint (same as login - will create account if needed)
+        Navigation.NavigateTo("/auth/linkedin", forceLoad: true);
     }
 }

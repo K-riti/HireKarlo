@@ -76,6 +76,32 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// OAuth login/register - handles Google and LinkedIn OAuth
+    /// </summary>
+    [HttpPost("oauth")]
+    public async Task<ActionResult<AuthResult>> OAuthLogin(
+        [FromBody] OAuthLoginRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest(new { error = "Email is required" });
+        }
+
+        var result = await _authService.LoginOrRegisterWithOAuthAsync(
+            request.Email,
+            request.Name ?? request.Email,
+            request.Provider ?? "OAuth",
+            request.GoogleId ?? request.LinkedInId,
+            cancellationToken);
+
+        if (!result.Success)
+            return BadRequest(new { error = result.Error });
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Refresh access token
     /// </summary>
     [HttpPost("refresh")]
@@ -231,4 +257,13 @@ public record NewsletterPreferencesRequest
     public bool SubscribedToNewsletter { get; init; }
     public bool SubscribedToMatchAlerts { get; init; }
     public bool SubscribedToWeeklyDigest { get; init; }
+}
+
+public record OAuthLoginRequest
+{
+    public string? Email { get; init; }
+    public string? Name { get; init; }
+    public string? GoogleId { get; init; }
+    public string? LinkedInId { get; init; }
+    public string? Provider { get; init; }
 }

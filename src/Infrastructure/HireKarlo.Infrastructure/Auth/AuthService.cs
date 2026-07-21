@@ -198,6 +198,62 @@ public class AuthService : IAuthService
         return GenerateAuthResult(user, true);
     }
 
+    public async Task<AuthResult> LoginOrRegisterWithOAuthAsync(string email, string name, string provider, string? providerId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Find or create user by email
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            var isNewUser = user == null;
+
+            if (user == null)
+            {
+                // Parse name into first/last
+                var nameParts = (name ?? email).Split(' ', 2);
+                var firstName = nameParts[0];
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    DisplayName = name ?? email,
+                    GoogleId = provider == "Google" ? providerId : null,
+                    LinkedInId = provider == "LinkedIn" ? providerId : null,
+                    LastLoginAt = DateTime.UtcNow,
+                    LastLoginProvider = provider,
+                    SubscribedToNewsletter = true,
+                    SubscribedToMatchAlerts = true,
+                    SubscribedToWeeklyDigest = true
+                };
+                await _userRepository.AddAsync(user, cancellationToken);
+            }
+            else
+            {
+                // Update last login info
+                user.LastLoginAt = DateTime.UtcNow;
+                user.LastLoginProvider = provider;
+
+                // Link provider ID if not already set
+                if (provider == "Google" && string.IsNullOrEmpty(user.GoogleId))
+                    user.GoogleId = providerId;
+                if (provider == "LinkedIn" && string.IsNullOrEmpty(user.LinkedInId))
+                    user.LinkedInId = providerId;
+
+                await _userRepository.UpdateAsync(user, cancellationToken);
+            }
+
+            return GenerateAuthResult(user, isNewUser);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during OAuth login for {Email}", email);
+            return new AuthResult { Success = false, Error = "Authentication failed" };
+        }
+    }
+
     public async Task<AuthResult> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         // Validate refresh token and generate new access token

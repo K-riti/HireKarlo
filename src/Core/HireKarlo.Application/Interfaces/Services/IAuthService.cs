@@ -8,6 +8,7 @@ public interface IAuthService
     Task<AuthResult> LoginWithLinkedInAsync(string authorizationCode, string redirectUri, CancellationToken cancellationToken = default);
     Task<AuthResult> LoginWithEmailAsync(string email, string password, CancellationToken cancellationToken = default);
     Task<AuthResult> RegisterWithEmailAsync(RegisterRequest request, CancellationToken cancellationToken = default);
+    Task<AuthResult> LoginOrRegisterWithOAuthAsync(string email, string name, string provider, string? providerId, CancellationToken cancellationToken = default);
     Task<AuthResult> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
     Task<bool> LogoutAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<User?> GetUserFromTokenAsync(string token, CancellationToken cancellationToken = default);
