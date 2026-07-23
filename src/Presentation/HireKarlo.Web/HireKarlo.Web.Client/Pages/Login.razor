@@ -3,6 +3,7 @@
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Login - HireKarlo</PageTitle>
 
@@ -23,72 +24,80 @@
         }
 
         <div class="social-login">
-            @* Use anchor tags for OAuth - they work immediately without waiting for WASM *@
-            <a href="/auth/google" class="btn-social google" @onclick="ShowLoading">
-                <span class="icon">G</span>
-                <span>@(socialLoading == "google" ? "Redirecting..." : "Continue with Google")</span>
-            </a>
-            <a href="/auth/linkedin" class="btn-social linkedin" @onclick="ShowLoadingLinkedIn">
-                <span class="icon">in</span>
-                <span>@(socialLoading == "linkedin" ? "Redirecting..." : "Continue with LinkedIn")</span>
-            </a>
-        </div>
-
-        <div class="auth-notice">
-            <span class="notice-icon">ℹ️</span>
-            <span>OAuth may redirect to demo mode if provider is not configured</span>
-        </div>
-
-        <div class="divider">
-            <span>or</span>
-        </div>
-
-        <form class="login-form" @onsubmit="HandleLogin" @onsubmit:preventDefault>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" @bind="email" placeholder="you@example.com" required />
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" @bind="password" placeholder="••••••••" required />
-            </div>
-            @if (!string.IsNullOrEmpty(errorMessage))
+            @if (isRedirecting)
             {
-                <div class="error-message">@errorMessage</div>
+                <div class="redirect-overlay">
+                    <div class="redirect-spinner"></div>
+                    <p>Connecting to @redirectProvider...</p>
+                    <p class="redirect-subtext">You'll be redirected shortly</p>
+                </div>
             }
-            <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
-                @if (isLoading)
+            else
+            {
+                <button type="button" class="btn-social google" @onclick="HandleGoogleLogin" disabled="@isRedirecting">
+                    <span class="icon">G</span>
+                    <span>Continue with Google</span>
+                </button>
+                <button type="button" class="btn-social linkedin" @onclick="HandleLinkedInLogin" disabled="@isRedirecting">
+                    <span class="icon">in</span>
+                    <span>Continue with LinkedIn</span>
+                </button>
+            }
+        </div>
+
+        @if (!isRedirecting)
+        {
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <form class="login-form" @onsubmit="HandleLogin" @onsubmit:preventDefault>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" @bind="email" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" @bind="password" placeholder="••••••••" required />
+                </div>
+                @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <span class="spinner"></span>
-                    <span>Signing in...</span>
+                    <div class="error-message">@errorMessage</div>
                 }
-                else
-                {
-                    <span>Sign In</span>
-                }
-            </button>
-        </form>
+                <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner"></span>
+                        <span>Signing in...</span>
+                    }
+                    else
+                    {
+                        <span>Sign In</span>
+                    }
+                </button>
+            </form>
 
-        <div class="demo-section">
-            <p>Just want to explore?</p>
-            <a href="/auth/demo" class="btn btn-ghost">🎮 Try Demo Mode</a>
-        </div>
+            <div class="demo-section">
+                <p>Just want to explore?</p>
+                <button type="button" class="btn btn-ghost" @onclick="HandleDemoLogin">🎮 Try Demo Mode</button>
+            </div>
 
-        <div class="login-footer">
-            <p>Don't have an account? <a href="/register">Sign up free</a></p>
-            <a href="/forgot-password">Forgot password?</a>
-        </div>
+            <div class="login-footer">
+                <p>Don't have an account? <a href="/register">Sign up free</a></p>
+                <a href="/forgot-password">Forgot password?</a>
+            </div>
 
-        <div class="features-preview">
-            <h3>What you'll get:</h3>
-            <ul>
-                <li>🎯 AI-powered resume optimization</li>
-                <li>📊 ATS score analysis</li>
-                <li>🎤 Mock interview practice</li>
-                <li>📚 Personalized learning paths</li>
-                <li>💼 Smart job matching</li>
-            </ul>
-        </div>
+            <div class="features-preview">
+                <h3>What you'll get:</h3>
+                <ul>
+                    <li>🎯 AI-powered resume optimization</li>
+                    <li>📊 ATS score analysis</li>
+                    <li>🎤 Mock interview practice</li>
+                    <li>📚 Personalized learning paths</li>
+                    <li>💼 Smart job matching</li>
+                </ul>
+            </div>
+        }
     </div>
 </div>
 
@@ -120,17 +129,42 @@
         line-height: 1;
     }
 
-    .auth-notice {
+    .redirect-overlay {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: 0.75rem;
-        background: rgba(139, 92, 246, 0.1);
-        border-radius: 8px;
-        margin-top: 1rem;
-        font-size: 0.85rem;
-        color: var(--text-muted);
+        padding: 3rem 2rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.8), rgba(20, 20, 40, 0.9));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        text-align: center;
+    }
+
+    .redirect-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1.5rem;
+    }
+
+    .redirect-overlay p {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.1rem;
+    }
+
+    .redirect-subtext {
+        color: var(--text-muted) !important;
+        font-size: 0.9rem !important;
+        margin-top: 0.5rem !important;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
     }
 
     .demo-section {
@@ -170,8 +204,9 @@
     private string password = "";
     private string errorMessage = "";
     private string errorFromUrl = "";
-    private string socialLoading = "";
+    private string redirectProvider = "";
     private bool isLoading;
+    private bool isRedirecting;
 
     protected override void OnInitialized()
     {
@@ -185,14 +220,37 @@
         }
     }
 
-    private void ShowLoading()
+    private async Task HandleGoogleLogin()
     {
-        socialLoading = "google";
+        isRedirecting = true;
+        redirectProvider = "Google";
+        StateHasChanged();
+
+        // Small delay to show the loading state before navigation
+        await Task.Delay(100);
+
+        // Navigate to the auth endpoint
+        Navigation.NavigateTo("/auth/google", forceLoad: true);
     }
 
-    private void ShowLoadingLinkedIn()
+    private async Task HandleLinkedInLogin()
     {
-        socialLoading = "linkedin";
+        isRedirecting = true;
+        redirectProvider = "LinkedIn";
+        StateHasChanged();
+
+        await Task.Delay(100);
+        Navigation.NavigateTo("/auth/linkedin", forceLoad: true);
+    }
+
+    private async Task HandleDemoLogin()
+    {
+        isRedirecting = true;
+        redirectProvider = "Demo Mode";
+        StateHasChanged();
+
+        await Task.Delay(100);
+        Navigation.NavigateTo("/auth/demo", forceLoad: true);
     }
 
     private void DismissError()
