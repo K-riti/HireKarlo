@@ -1,4 +1,4 @@
-@page "/onboarding"
+﻿@page "/onboarding"
 @rendermode InteractiveAuto
 @inject ApiClient Api
 @inject AuthStateProvider AuthState
@@ -17,7 +17,7 @@
                     <div class="step-number">
                         @if (currentStep > step)
                         {
-                            <span>✓</span>
+                            <span>âœ“</span>
                         }
                         else
                         {
@@ -36,7 +36,7 @@
                 case 1:
                     <!-- Welcome & Consent -->
                     <div class="step-panel welcome-step">
-                        <div class="step-icon">🚀</div>
+                        <div class="step-icon">ðŸš€</div>
                         <h1>Welcome to <span class="gradient-text">HireKarlo</span>!</h1>
                         <p>Let's set up your profile to help you land your dream job faster.</p>
 
@@ -47,7 +47,7 @@
                                 <input type="checkbox" @bind="consentNewsletter" />
                                 <span class="checkmark"></span>
                                 <div class="consent-text">
-                                    <strong>📧 Weekly Job Alerts</strong>
+                                    <strong>ðŸ“§ Weekly Job Alerts</strong>
                                     <p>Receive personalized job recommendations matching your profile</p>
                                 </div>
                             </label>
@@ -56,7 +56,7 @@
                                 <input type="checkbox" @bind="consentJobMatch" />
                                 <span class="checkmark"></span>
                                 <div class="consent-text">
-                                    <strong>🎯 Smart Job Matching</strong>
+                                    <strong>ðŸŽ¯ Smart Job Matching</strong>
                                     <p>Allow us to scan job postings and notify you when we find 90%+ matches with your resume</p>
                                 </div>
                             </label>
@@ -65,15 +65,21 @@
                                 <input type="checkbox" @bind="consentDataProcessing" />
                                 <span class="checkmark"></span>
                                 <div class="consent-text">
-                                    <strong>🔒 Data Processing</strong>
+                                    <strong>ðŸ”’ Data Processing</strong>
                                     <p>I agree to the <a href="/privacy" target="_blank">Privacy Policy</a> and allow processing of my data to provide personalized recommendations</p>
                                 </div>
                             </label>
                         </div>
 
+                        @if (!consentDataProcessing)
+                        {
+                            <p class="consent-hint">Please check the Data Processing box above to continue</p>
+                        }
+
+
                         <button class="btn btn-primary btn-large" @onclick="NextStep" 
                                 disabled="@(!consentDataProcessing)">
-                            Get Started →
+                            Get Started â†’
                         </button>
                     </div>
                     break;
@@ -81,7 +87,7 @@
                 case 2:
                     <!-- Dream Companies -->
                     <div class="step-panel companies-step">
-                        <div class="step-icon">🏢</div>
+                        <div class="step-icon">ðŸ¢</div>
                         <h2>Your Dream Companies</h2>
                         <p>Select up to 10 companies you'd love to work for. We'll prioritize job alerts from these.</p>
 
@@ -109,14 +115,14 @@
                                 <div class="company-chip">
                                     <span class="chip-logo">@company[0]</span>
                                     <span>@company</span>
-                                    <button class="chip-remove" @onclick="() => RemoveCompany(company)">×</button>
+                                    <button class="chip-remove" @onclick="() => RemoveCompany(company)">Ã—</button>
                                 </div>
                             }
                         </div>
 
                         @if (selectedCompanies.Count >= 10)
                         {
-                            <p class="limit-message">✓ Maximum 10 companies selected</p>
+                            <p class="limit-message">âœ“ Maximum 10 companies selected</p>
                         }
                         else
                         {
@@ -142,7 +148,7 @@
                 case 3:
                     <!-- Skills & Experience -->
                     <div class="step-panel skills-step">
-                        <div class="step-icon">💡</div>
+                        <div class="step-icon">ðŸ’¡</div>
                         <h2>Your Skills & Experience</h2>
                         <p>Help us understand your background so we can find the best matches.</p>
 
@@ -172,7 +178,7 @@
                                 {
                                     <div class="skill-chip">
                                         @skill
-                                        <button class="chip-remove" @onclick="() => RemoveSkill(skill)">×</button>
+                                        <button class="chip-remove" @onclick="() => RemoveSkill(skill)">Ã—</button>
                                     </div>
                                 }
                             </div>
@@ -196,7 +202,7 @@
                             <div class="location-options">
                                 <label class="location-check">
                                     <input type="checkbox" @bind="preferRemote" />
-                                    <span>🏠 Remote</span>
+                                    <span>ðŸ  Remote</span>
                                 </label>
                                 <input type="text" @bind="preferredLocation" placeholder="City, State or Country..." />
                             </div>
@@ -207,7 +213,7 @@
                 case 4:
                     <!-- Resume Upload -->
                     <div class="step-panel resume-step">
-                        <div class="step-icon">📄</div>
+                        <div class="step-icon">ðŸ“„</div>
                         <h2>Upload Your Resume</h2>
                         <p>We'll analyze your resume before every job application to give you an ATS match score.</p>
 
@@ -216,7 +222,7 @@
                             @if (resumeUploaded)
                             {
                                 <div class="upload-success">
-                                    <span class="success-icon">✅</span>
+                                    <span class="success-icon">âœ…</span>
                                     <h3>Resume Uploaded!</h3>
                                     <p>@resumeFileName</p>
                                     <button class="btn btn-ghost" @onclick="RemoveResume">Remove & Upload Another</button>
@@ -232,7 +238,7 @@
                             else
                             {
                                 <div class="upload-prompt">
-                                    <span class="upload-icon">📁</span>
+                                    <span class="upload-icon">ðŸ“</span>
                                     <h3>Drag & Drop your resume here</h3>
                                     <p>or</p>
                                     <label class="btn btn-secondary upload-btn">
@@ -245,7 +251,7 @@
                         </div>
 
                         <div class="ats-info">
-                            <h4>🎯 How ATS Matching Works</h4>
+                            <h4>ðŸŽ¯ How ATS Matching Works</h4>
                             <ul>
                                 <li>Before each job application, we scan both your resume and the job description</li>
                                 <li>If your match score is 90%+, we notify you immediately</li>
@@ -258,25 +264,25 @@
                 case 5:
                     <!-- Completion -->
                     <div class="step-panel complete-step">
-                        <div class="step-icon">🎉</div>
+                        <div class="step-icon">ðŸŽ‰</div>
                         <h2>You're All Set!</h2>
                         <p>Your profile is ready. Here's what happens next:</p>
 
                         <div class="summary-cards">
                             <div class="summary-card">
-                                <span class="card-icon">🏢</span>
+                                <span class="card-icon">ðŸ¢</span>
                                 <h4>@selectedCompanies.Count Dream Companies</h4>
                                 <p>We'll prioritize jobs from these companies</p>
                             </div>
                             <div class="summary-card">
-                                <span class="card-icon">💡</span>
+                                <span class="card-icon">ðŸ’¡</span>
                                 <h4>@selectedSkills.Count Skills Added</h4>
                                 <p>Used for smart job matching</p>
                             </div>
                             @if (resumeUploaded)
                             {
                                 <div class="summary-card">
-                                    <span class="card-icon">📄</span>
+                                    <span class="card-icon">ðŸ“„</span>
                                     <h4>Resume Ready</h4>
                                     <p>ATS analysis enabled</p>
                                 </div>
@@ -285,10 +291,10 @@
 
                         <div class="next-actions">
                             <button class="btn btn-primary btn-large" @onclick="CompleteOnboarding">
-                                🚀 Start Exploring Jobs
+                                ðŸš€ Start Exploring Jobs
                             </button>
                             <button class="btn btn-secondary" @onclick="GoToResumes">
-                                📄 Upload More Resumes
+                                ðŸ“„ Upload More Resumes
                             </button>
                         </div>
                     </div>
@@ -300,9 +306,9 @@
         @if (currentStep > 1 && currentStep < 5)
         {
             <div class="step-navigation">
-                <button class="btn btn-ghost" @onclick="PreviousStep">← Back</button>
+                <button class="btn btn-ghost" @onclick="PreviousStep">â† Back</button>
                 <button class="btn btn-primary" @onclick="NextStep" disabled="@(!CanProceed())">
-                    @(currentStep == 4 ? "Complete Setup →" : "Continue →")
+                    @(currentStep == 4 ? "Complete Setup â†’" : "Continue â†’")
                 </button>
             </div>
         }
@@ -618,6 +624,40 @@
         font-size: 0.85rem;
         color: var(--text-muted);
         margin: 0;
+    }
+
+    /* Required consent highlighting */
+    .consent-item:last-child {
+        border: 2px solid rgba(239, 68, 68, 0.5);
+        background: rgba(239, 68, 68, 0.05);
+    }
+
+    .consent-item:last-child:has(input:checked) {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .consent-hint {
+        text-align: center;
+        color: #fbbf24;
+        font-size: 0.9rem;
+        margin: 1rem 0;
+        padding: 0.75rem;
+        background: rgba(251, 191, 36, 0.1);
+        border-radius: 8px;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .required-tag {
+        color: #ef4444;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     /* Company Selection */

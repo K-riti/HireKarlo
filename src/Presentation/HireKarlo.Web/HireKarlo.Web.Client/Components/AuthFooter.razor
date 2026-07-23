@@ -1,0 +1,200 @@
+@rendermode InteractiveAuto
+@inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+
+<div class="auth-footer">
+    @if (isInitialized)
+    {
+        @if (isAuthenticated)
+        {
+            <div class="user-info">
+                <div class="user-avatar">
+                    @(userName?.Length > 0 ? userName[0].ToString().ToUpper() : "U")
+                </div>
+                @if (!collapsed)
+                {
+                    <div class="user-details">
+                        <span class="user-name">@userName</span>
+                        <span class="user-email">@userEmail</span>
+                    </div>
+                }
+            </div>
+            <button class="logout-btn nav-item" @onclick="HandleLogout" title="Sign Out">
+                <span class="nav-icon">🚪</span>
+                @if (!collapsed) { <span>Sign Out</span> }
+            </button>
+        }
+        else
+        {
+            <a href="/login" class="nav-item login-btn" title="Sign In">
+                <span class="nav-icon">🔐</span>
+                @if (!collapsed) { <span>Sign In</span> }
+            </a>
+        }
+    }
+    else
+    {
+        <div class="auth-loading">
+            <span class="loading-dot"></span>
+        </div>
+    }
+</div>
+
+<style>
+    .auth-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-email {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .logout-btn {
+        color: #ef4444 !important;
+        border: none;
+        background: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        width: 100%;
+        text-align: left;
+    }
+
+    .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.15);
+    }
+
+    .auth-loading {
+        display: flex;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .loading-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--primary);
+        border-radius: 50%;
+        animation: pulse 1s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1); }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public bool collapsed { get; set; }
+
+    private bool isInitialized;
+    private bool isAuthenticated;
+    private string? userName;
+    private string? userEmail;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await AuthState.InitializeAsync();
+                isAuthenticated = AuthState.IsAuthenticated;
+
+                if (isAuthenticated && AuthState.CurrentUser != null)
+                {
+                    userName = AuthState.CurrentUser.Name ?? "User";
+                    userEmail = AuthState.CurrentUser.Email ?? "";
+                }
+
+                // Subscribe to auth changes
+                AuthState.OnAuthStateChanged += HandleAuthStateChanged;
+            }
+            catch
+            {
+                // Ignore errors during initialization
+                isAuthenticated = false;
+            }
+
+            isInitialized = true;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        isAuthenticated = AuthState.IsAuthenticated;
+        if (isAuthenticated && AuthState.CurrentUser != null)
+        {
+            userName = AuthState.CurrentUser.Name ?? "User";
+            userEmail = AuthState.CurrentUser.Email ?? "";
+        }
+        else
+        {
+            userName = null;
+            userEmail = null;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthState.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
+}

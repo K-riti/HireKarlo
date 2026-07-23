@@ -86,10 +86,7 @@
                     </div>
                 </div>
             }
-            <a href="/login" class="nav-item login-btn" title="Sign In">
-                <span class="nav-icon">🔐</span>
-                @if (!sidebarCollapsed) { <span>Sign In</span> }
-            </a>
+            <HireKarlo.Web.Client.Components.AuthFooter collapsed="@sidebarCollapsed" />
         </div>
     </aside>
 
