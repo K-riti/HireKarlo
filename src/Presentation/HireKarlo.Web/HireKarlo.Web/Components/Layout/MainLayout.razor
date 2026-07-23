@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
 <div class="app-container">
-    <!-- Sidebar -->
+    <!-- 🎭 Fun Animated Sidebar -->
     <aside class="sidebar @(sidebarCollapsed ? "collapsed" : "")">
         <div class="sidebar-header">
             <a href="/" class="logo">
@@ -11,50 +11,65 @@
                     <span class="logo-text">HireKarlo</span>
                 }
             </a>
-            <button class="toggle-btn" @onclick="ToggleSidebar">
+            <button class="toggle-btn" @onclick="ToggleSidebar" title="@(sidebarCollapsed ? "Expand" : "Collapse")">
                 @(sidebarCollapsed ? "→" : "←")
             </button>
         </div>
 
         <nav class="sidebar-nav">
-            <a href="/" class="nav-item">
+            <a href="/" class="nav-item" title="Dashboard">
                 <span class="nav-icon">🏠</span>
-                @if (!sidebarCollapsed) { <span>Dashboard</span> }
+                @if (!sidebarCollapsed) { <span>Home</span> }
             </a>
-            <a href="/resumes" class="nav-item">
+            <a href="/resumes" class="nav-item" title="Resume Manager">
                 <span class="nav-icon">📄</span>
                 @if (!sidebarCollapsed) { <span>Resumes</span> }
             </a>
-            <a href="/jobs" class="nav-item">
+            <a href="/jobs" class="nav-item" title="Job Search">
                 <span class="nav-icon">💼</span>
                 @if (!sidebarCollapsed) { <span>Jobs</span> }
             </a>
-            <a href="/applications" class="nav-item">
+            <a href="/applications" class="nav-item" title="Track Applications">
                 <span class="nav-icon">📋</span>
                 @if (!sidebarCollapsed) { <span>Applications</span> }
             </a>
-            <a href="/mock-interview" class="nav-item">
+
+            <div class="nav-divider"></div>
+
+            <a href="/mock-interview" class="nav-item" title="Practice Interviews">
                 <span class="nav-icon">🎤</span>
                 @if (!sidebarCollapsed) { <span>Mock Interview</span> }
             </a>
-            <a href="/learning" class="nav-item">
+            <a href="/learning" class="nav-item" title="Skill Up">
                 <span class="nav-icon">📚</span>
                 @if (!sidebarCollapsed) { <span>Learning Path</span> }
             </a>
-            <a href="/linkedin" class="nav-item">
-                <span class="nav-icon">💼</span>
-                @if (!sidebarCollapsed) { <span>LinkedIn Optimizer</span> }
+            <a href="/linkedin" class="nav-item" title="Optimize LinkedIn">
+                <span class="nav-icon">💎</span>
+                @if (!sidebarCollapsed) { <span>LinkedIn Pro</span> }
             </a>
-            <a href="/chat" class="nav-item">
+            <a href="/chat" class="nav-item" title="AI Career Coach">
                 <span class="nav-icon">🤖</span>
-                @if (!sidebarCollapsed) { <span>AI Assistant</span> }
+                @if (!sidebarCollapsed) { <span>AI Coach</span> }
             </a>
         </nav>
 
         <div class="sidebar-footer">
-            <a href="/login" class="nav-item login-btn">
+            @if (!sidebarCollapsed)
+            {
+                <div class="xp-progress">
+                    <div class="xp-label">
+                        <span>Level 5</span>
+                        <span class="xp-points">2,450 XP</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                </div>
+            }
+            <a href="/login" class="nav-item login-btn" title="Sign In">
                 <span class="nav-icon">🔐</span>
-                @if (!sidebarCollapsed) { <span>Login</span> }
+                @if (!sidebarCollapsed) { <span>Sign In</span> }
             </a>
         </div>
     </aside>
@@ -63,11 +78,17 @@
     <main class="main-content">
         <header class="top-bar">
             <div class="search-box">
-                <input type="text" placeholder="Search jobs, skills, companies..." />
-                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="🔍 Search jobs, skills, companies..." />
             </div>
             <div class="top-bar-actions">
-                <button class="notification-btn" title="Notifications">🔔</button>
+                <button class="notification-btn" title="Notifications">
+                    <span>🔔</span>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="streak-btn" title="Daily Streak">
+                    <span>🔥</span>
+                    <span class="streak-count">7</span>
+                </button>
                 <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
                     @(isDarkMode ? "☀️" : "🌙")
                 </button>
@@ -81,14 +102,89 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <span>⚠️ Oops! Something went wrong.</span>
+    <a href="." class="reload">🔄 Reload</a>
+    <span class="dismiss">✕</span>
 </div>
+
+<style>
+    /* Extra sidebar styles */
+    .nav-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 0.75rem 0;
+    }
+
+    .xp-progress {
+        padding: 0.75rem 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: var(--radius-md);
+        margin-bottom: 0.75rem;
+    }
+
+    .xp-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .xp-points {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .notification-btn,
+    .streak-btn {
+        position: relative;
+    }
+
+    .notification-badge,
+    .streak-count {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        background: linear-gradient(135deg, var(--accent), var(--primary));
+        border-radius: 50%;
+        font-size: 0.65rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .streak-count {
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+    }
+
+    .streak-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-md);
+        background: var(--bg-glass);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        transition: all var(--transition-normal);
+    }
+
+    .streak-btn:hover {
+        background: rgba(245, 158, 11, 0.2);
+        border-color: #f59e0b;
+        transform: scale(1.1);
+    }
+</style>
 
 @code {
     private bool sidebarCollapsed = false;
-    private bool isDarkMode = false;
+    private bool isDarkMode = true;
 
     private void ToggleSidebar() => sidebarCollapsed = !sidebarCollapsed;
     private void ToggleTheme() => isDarkMode = !isDarkMode;

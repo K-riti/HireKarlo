@@ -9,7 +9,6 @@ namespace HireKarlo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class ApplicationsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -21,11 +20,21 @@ public class ApplicationsController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get applications - returns demo data for unauthenticated users
+    /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<List<ApplicationDto>>> GetApplications(
         [FromQuery] ApplicationStage? stage = null,
         CancellationToken cancellationToken = default)
     {
+        // Return demo data for testing
+        if (!User.Identity?.IsAuthenticated ?? true)
+        {
+            return Ok(GetDemoApplications());
+        }
+
         var userId = GetUserId();
         var query = new GetUserApplicationsQuery
         {
@@ -38,6 +47,7 @@ public class ApplicationsController : ControllerBase
     }
 
     [HttpGet("kanban")]
+    [Authorize]
     public async Task<ActionResult<Dictionary<ApplicationStage, List<ApplicationDto>>>> GetKanbanBoard(
         CancellationToken cancellationToken = default)
     {
@@ -49,6 +59,7 @@ public class ApplicationsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize]
     public async Task<ActionResult<ApplicationDetailDto>> GetApplication(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -63,6 +74,7 @@ public class ApplicationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<Guid>> CreateApplication(
         [FromBody] CreateApplicationRequest request,
         CancellationToken cancellationToken = default)
@@ -81,6 +93,7 @@ public class ApplicationsController : ControllerBase
     }
 
     [HttpPut("{id:guid}/stage")]
+    [Authorize]
     public async Task<ActionResult> UpdateStage(
         Guid id,
         [FromBody] UpdateStageRequest request,
@@ -143,6 +156,27 @@ public class ApplicationsController : ControllerBase
 
         return Guid.Parse(userIdClaim);
     }
+
+    private static List<DemoApplicationDto> GetDemoApplications() =>
+    [
+        new() { Id = Guid.NewGuid(), Company = "Google", Position = "Senior Software Engineer", Status = "Interview", Location = "Mountain View, CA", AppliedDate = DateTime.Now.AddDays(-5), MatchScore = 92 },
+        new() { Id = Guid.NewGuid(), Company = "Microsoft", Position = "Full Stack Developer", Status = "Applied", Location = "Seattle, WA", AppliedDate = DateTime.Now.AddDays(-3), MatchScore = 88 },
+        new() { Id = Guid.NewGuid(), Company = "Amazon", Position = "Backend Engineer", Status = "Applied", Location = "San Francisco, CA", AppliedDate = DateTime.Now.AddDays(-7), MatchScore = 85 },
+        new() { Id = Guid.NewGuid(), Company = "Meta", Position = "Frontend Developer", Status = "Offer", Location = "Menlo Park, CA", AppliedDate = DateTime.Now.AddDays(-14), MatchScore = 90 },
+        new() { Id = Guid.NewGuid(), Company = "Netflix", Position = "DevOps Engineer", Status = "Rejected", Location = "Los Gatos, CA", AppliedDate = DateTime.Now.AddDays(-20), MatchScore = 75 },
+        new() { Id = Guid.NewGuid(), Company = "Stripe", Position = "Platform Engineer", Status = "Interview", Location = "San Francisco, CA", AppliedDate = DateTime.Now.AddDays(-10), MatchScore = 95 },
+    ];
+}
+
+public class DemoApplicationDto
+{
+    public Guid Id { get; set; }
+    public string Company { get; set; } = "";
+    public string Position { get; set; } = "";
+    public string Status { get; set; } = "";
+    public string? Location { get; set; }
+    public DateTime AppliedDate { get; set; }
+    public int MatchScore { get; set; }
 }
 
 public record CreateApplicationRequest

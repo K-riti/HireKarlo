@@ -13,16 +13,30 @@
             <p>Your AI-powered career toolkit</p>
         </div>
 
+        @if (!string.IsNullOrEmpty(errorFromUrl))
+        {
+            <div class="error-banner">
+                <span class="error-icon">⚠️</span>
+                <span>@errorFromUrl</span>
+                <button class="dismiss-btn" @onclick="DismissError">×</button>
+            </div>
+        }
+
         <div class="social-login">
             @* Use anchor tags for OAuth - they work immediately without waiting for WASM *@
-            <a href="/auth/google" class="btn-social google">
+            <a href="/auth/google" class="btn-social google" @onclick="ShowLoading">
                 <span class="icon">G</span>
-                <span>Continue with Google</span>
+                <span>@(socialLoading == "google" ? "Redirecting..." : "Continue with Google")</span>
             </a>
-            <a href="/auth/linkedin" class="btn-social linkedin">
+            <a href="/auth/linkedin" class="btn-social linkedin" @onclick="ShowLoadingLinkedIn">
                 <span class="icon">in</span>
-                <span>Continue with LinkedIn</span>
+                <span>@(socialLoading == "linkedin" ? "Redirecting..." : "Continue with LinkedIn")</span>
             </a>
+        </div>
+
+        <div class="auth-notice">
+            <span class="notice-icon">ℹ️</span>
+            <span>OAuth may redirect to demo mode if provider is not configured</span>
         </div>
 
         <div class="divider">
@@ -55,6 +69,11 @@
             </button>
         </form>
 
+        <div class="demo-section">
+            <p>Just want to explore?</p>
+            <a href="/auth/demo" class="btn btn-ghost">🎮 Try Demo Mode</a>
+        </div>
+
         <div class="login-footer">
             <p>Don't have an account? <a href="/register">Sign up free</a></p>
             <a href="/forgot-password">Forgot password?</a>
@@ -73,11 +92,113 @@
     </div>
 </div>
 
+<style>
+    .error-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        color: #fca5a5;
+    }
+
+    .error-banner .error-icon {
+        font-size: 1.25rem;
+    }
+
+    .dismiss-btn {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: #fca5a5;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .auth-notice {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .demo-section {
+        text-align: center;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+    }
+
+    .demo-section p {
+        margin: 0 0 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--primary);
+    }
+</style>
+
 @code {
     private string email = "";
     private string password = "";
     private string errorMessage = "";
+    private string errorFromUrl = "";
+    private string socialLoading = "";
     private bool isLoading;
+
+    protected override void OnInitialized()
+    {
+        // Check for error in URL query string
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var error = query["error"];
+        if (!string.IsNullOrEmpty(error))
+        {
+            errorFromUrl = Uri.UnescapeDataString(error.Replace("+", " "));
+        }
+    }
+
+    private void ShowLoading()
+    {
+        socialLoading = "google";
+    }
+
+    private void ShowLoadingLinkedIn()
+    {
+        socialLoading = "linkedin";
+    }
+
+    private void DismissError()
+    {
+        errorFromUrl = "";
+    }
 
     private async Task HandleLogin()
     {

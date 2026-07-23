@@ -1,0 +1,1033 @@
+@page "/onboarding"
+@rendermode InteractiveAuto
+@inject ApiClient Api
+@inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Complete Your Profile - HireKarlo</PageTitle>
+
+<div class="onboarding-page">
+    <div class="onboarding-container">
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            @for (int i = 1; i <= totalSteps; i++)
+            {
+                var step = i;
+                <div class="step @(currentStep == step ? "active" : "") @(currentStep > step ? "completed" : "")">
+                    <div class="step-number">
+                        @if (currentStep > step)
+                        {
+                            <span>✓</span>
+                        }
+                        else
+                        {
+                            <span>@step</span>
+                        }
+                    </div>
+                    <span class="step-label">@GetStepLabel(step)</span>
+                </div>
+            }
+        </div>
+
+        <!-- Step Content -->
+        <div class="step-content">
+            @switch (currentStep)
+            {
+                case 1:
+                    <!-- Welcome & Consent -->
+                    <div class="step-panel welcome-step">
+                        <div class="step-icon">🚀</div>
+                        <h1>Welcome to <span class="gradient-text">HireKarlo</span>!</h1>
+                        <p>Let's set up your profile to help you land your dream job faster.</p>
+
+                        <div class="consent-section">
+                            <h3>Before we begin, please review:</h3>
+
+                            <label class="consent-item">
+                                <input type="checkbox" @bind="consentNewsletter" />
+                                <span class="checkmark"></span>
+                                <div class="consent-text">
+                                    <strong>📧 Weekly Job Alerts</strong>
+                                    <p>Receive personalized job recommendations matching your profile</p>
+                                </div>
+                            </label>
+
+                            <label class="consent-item">
+                                <input type="checkbox" @bind="consentJobMatch" />
+                                <span class="checkmark"></span>
+                                <div class="consent-text">
+                                    <strong>🎯 Smart Job Matching</strong>
+                                    <p>Allow us to scan job postings and notify you when we find 90%+ matches with your resume</p>
+                                </div>
+                            </label>
+
+                            <label class="consent-item">
+                                <input type="checkbox" @bind="consentDataProcessing" />
+                                <span class="checkmark"></span>
+                                <div class="consent-text">
+                                    <strong>🔒 Data Processing</strong>
+                                    <p>I agree to the <a href="/privacy" target="_blank">Privacy Policy</a> and allow processing of my data to provide personalized recommendations</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button class="btn btn-primary btn-large" @onclick="NextStep" 
+                                disabled="@(!consentDataProcessing)">
+                            Get Started →
+                        </button>
+                    </div>
+                    break;
+
+                case 2:
+                    <!-- Dream Companies -->
+                    <div class="step-panel companies-step">
+                        <div class="step-icon">🏢</div>
+                        <h2>Your Dream Companies</h2>
+                        <p>Select up to 10 companies you'd love to work for. We'll prioritize job alerts from these.</p>
+
+                        <div class="search-box">
+                            <input type="text" @bind="companySearch" @bind:event="oninput" 
+                                   @onkeydown="HandleCompanyKeyDown"
+                                   placeholder="Search or type a company name..." />
+                            @if (!string.IsNullOrEmpty(companySearch) && filteredCompanies.Any())
+                            {
+                                <div class="search-dropdown">
+                                    @foreach (var company in filteredCompanies.Take(5))
+                                    {
+                                        <button class="dropdown-item" @onclick="() => AddCompany(company)">
+                                            <span class="company-logo">@company[0]</span>
+                                            @company
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="selected-companies">
+                            @foreach (var company in selectedCompanies)
+                            {
+                                <div class="company-chip">
+                                    <span class="chip-logo">@company[0]</span>
+                                    <span>@company</span>
+                                    <button class="chip-remove" @onclick="() => RemoveCompany(company)">×</button>
+                                </div>
+                            }
+                        </div>
+
+                        @if (selectedCompanies.Count >= 10)
+                        {
+                            <p class="limit-message">✓ Maximum 10 companies selected</p>
+                        }
+                        else
+                        {
+                            <p class="hint-message">@(10 - selectedCompanies.Count) more companies can be added</p>
+                        }
+
+                        <div class="suggested-companies">
+                            <h4>Popular Companies</h4>
+                            <div class="company-grid">
+                                @foreach (var company in popularCompanies.Where(c => !selectedCompanies.Contains(c)))
+                                {
+                                    <button class="company-btn" @onclick="() => AddCompany(company)" 
+                                            disabled="@(selectedCompanies.Count >= 10)">
+                                        <span class="company-logo-small">@company[0]</span>
+                                        @company
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    break;
+
+                case 3:
+                    <!-- Skills & Experience -->
+                    <div class="step-panel skills-step">
+                        <div class="step-icon">💡</div>
+                        <h2>Your Skills & Experience</h2>
+                        <p>Help us understand your background so we can find the best matches.</p>
+
+                        <div class="form-section">
+                            <label>Years of Experience</label>
+                            <div class="experience-options">
+                                @foreach (var exp in experienceLevels)
+                                {
+                                    <button class="exp-btn @(selectedExperience == exp ? "active" : "")"
+                                            @onclick="() => selectedExperience = exp">
+                                        @exp
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <label>Your Skills</label>
+                            <div class="skill-input">
+                                <input type="text" @bind="skillSearch" @bind:event="oninput"
+                                       @onkeydown="HandleSkillKeyDown"
+                                       placeholder="Add a skill (e.g., C#, React, AWS)..." />
+                            </div>
+
+                            <div class="selected-skills">
+                                @foreach (var skill in selectedSkills)
+                                {
+                                    <div class="skill-chip">
+                                        @skill
+                                        <button class="chip-remove" @onclick="() => RemoveSkill(skill)">×</button>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="suggested-skills">
+                                <span class="suggest-label">Suggested:</span>
+                                @foreach (var skill in suggestedSkills.Where(s => !selectedSkills.Contains(s)).Take(8))
+                                {
+                                    <button class="skill-suggest-btn" @onclick="() => AddSkill(skill)">+ @skill</button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <label>Target Role</label>
+                            <input type="text" @bind="targetRole" placeholder="e.g., Senior Software Engineer, Product Manager..." />
+                        </div>
+
+                        <div class="form-section">
+                            <label>Preferred Locations</label>
+                            <div class="location-options">
+                                <label class="location-check">
+                                    <input type="checkbox" @bind="preferRemote" />
+                                    <span>🏠 Remote</span>
+                                </label>
+                                <input type="text" @bind="preferredLocation" placeholder="City, State or Country..." />
+                            </div>
+                        </div>
+                    </div>
+                    break;
+
+                case 4:
+                    <!-- Resume Upload -->
+                    <div class="step-panel resume-step">
+                        <div class="step-icon">📄</div>
+                        <h2>Upload Your Resume</h2>
+                        <p>We'll analyze your resume before every job application to give you an ATS match score.</p>
+
+                        <div class="upload-area @(isDragging ? "dragging" : "") @(resumeUploaded ? "uploaded" : "")"
+                             @ondragenter="HandleDragEnter" @ondragleave="HandleDragLeave" @ondrop="HandleDrop">
+                            @if (resumeUploaded)
+                            {
+                                <div class="upload-success">
+                                    <span class="success-icon">✅</span>
+                                    <h3>Resume Uploaded!</h3>
+                                    <p>@resumeFileName</p>
+                                    <button class="btn btn-ghost" @onclick="RemoveResume">Remove & Upload Another</button>
+                                </div>
+                            }
+                            else if (isUploading)
+                            {
+                                <div class="uploading">
+                                    <div class="upload-spinner"></div>
+                                    <p>Uploading...</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="upload-prompt">
+                                    <span class="upload-icon">📁</span>
+                                    <h3>Drag & Drop your resume here</h3>
+                                    <p>or</p>
+                                    <label class="btn btn-secondary upload-btn">
+                                        Browse Files
+                                        <InputFile OnChange="HandleFileSelected" accept=".pdf,.doc,.docx" style="display:none" />
+                                    </label>
+                                    <p class="file-hint">PDF, DOC, or DOCX (Max 5MB)</p>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="ats-info">
+                            <h4>🎯 How ATS Matching Works</h4>
+                            <ul>
+                                <li>Before each job application, we scan both your resume and the job description</li>
+                                <li>If your match score is 90%+, we notify you immediately</li>
+                                <li>Get keyword suggestions to improve your resume for specific roles</li>
+                            </ul>
+                        </div>
+                    </div>
+                    break;
+
+                case 5:
+                    <!-- Completion -->
+                    <div class="step-panel complete-step">
+                        <div class="step-icon">🎉</div>
+                        <h2>You're All Set!</h2>
+                        <p>Your profile is ready. Here's what happens next:</p>
+
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <span class="card-icon">🏢</span>
+                                <h4>@selectedCompanies.Count Dream Companies</h4>
+                                <p>We'll prioritize jobs from these companies</p>
+                            </div>
+                            <div class="summary-card">
+                                <span class="card-icon">💡</span>
+                                <h4>@selectedSkills.Count Skills Added</h4>
+                                <p>Used for smart job matching</p>
+                            </div>
+                            @if (resumeUploaded)
+                            {
+                                <div class="summary-card">
+                                    <span class="card-icon">📄</span>
+                                    <h4>Resume Ready</h4>
+                                    <p>ATS analysis enabled</p>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="next-actions">
+                            <button class="btn btn-primary btn-large" @onclick="CompleteOnboarding">
+                                🚀 Start Exploring Jobs
+                            </button>
+                            <button class="btn btn-secondary" @onclick="GoToResumes">
+                                📄 Upload More Resumes
+                            </button>
+                        </div>
+                    </div>
+                    break;
+            }
+        </div>
+
+        <!-- Navigation Buttons -->
+        @if (currentStep > 1 && currentStep < 5)
+        {
+            <div class="step-navigation">
+                <button class="btn btn-ghost" @onclick="PreviousStep">← Back</button>
+                <button class="btn btn-primary" @onclick="NextStep" disabled="@(!CanProceed())">
+                    @(currentStep == 4 ? "Complete Setup →" : "Continue →")
+                </button>
+            </div>
+        }
+
+        @if (currentStep > 1 && currentStep < 5)
+        {
+            <button class="skip-btn" @onclick="SkipToEnd">Skip for now</button>
+        }
+    </div>
+</div>
+
+@code {
+    private int currentStep = 1;
+    private const int totalSteps = 5;
+
+    // Step 1: Consent
+    private bool consentNewsletter = true;
+    private bool consentJobMatch = true;
+    private bool consentDataProcessing = false;
+
+    // Step 2: Companies
+    private string companySearch = "";
+    private List<string> selectedCompanies = new();
+    private readonly List<string> popularCompanies = new()
+    {
+        "Google", "Microsoft", "Amazon", "Apple", "Meta", "Netflix", "Uber", "Airbnb",
+        "Stripe", "Salesforce", "Adobe", "Spotify", "Twitter", "LinkedIn", "OpenAI",
+        "Nvidia", "Tesla", "Disney", "Goldman Sachs", "JPMorgan"
+    };
+    private List<string> filteredCompanies => string.IsNullOrEmpty(companySearch)
+        ? new List<string>()
+        : popularCompanies.Where(c => c.Contains(companySearch, StringComparison.OrdinalIgnoreCase) 
+            && !selectedCompanies.Contains(c)).ToList();
+
+    // Step 3: Skills
+    private string skillSearch = "";
+    private List<string> selectedSkills = new();
+    private string selectedExperience = "";
+    private string targetRole = "";
+    private string preferredLocation = "";
+    private bool preferRemote = true;
+    private readonly string[] experienceLevels = { "0-1 years", "1-3 years", "3-5 years", "5-10 years", "10+ years" };
+    private readonly List<string> suggestedSkills = new()
+    {
+        "JavaScript", "TypeScript", "React", "Node.js", "Python", "C#", ".NET", "Java",
+        "AWS", "Azure", "Docker", "Kubernetes", "SQL", "MongoDB", "GraphQL", "REST APIs",
+        "Git", "CI/CD", "Agile", "Scrum", "Machine Learning", "Data Science"
+    };
+
+    // Step 4: Resume
+    private bool resumeUploaded = false;
+    private string resumeFileName = "";
+    private bool isUploading = false;
+    private bool isDragging = false;
+
+    private string GetStepLabel(int step) => step switch
+    {
+        1 => "Welcome",
+        2 => "Companies",
+        3 => "Skills",
+        4 => "Resume",
+        5 => "Complete",
+        _ => ""
+    };
+
+    private void NextStep()
+    {
+        if (currentStep < totalSteps)
+            currentStep++;
+    }
+
+    private void PreviousStep()
+    {
+        if (currentStep > 1)
+            currentStep--;
+    }
+
+    private void SkipToEnd() => currentStep = 5;
+
+    private bool CanProceed() => currentStep switch
+    {
+        1 => consentDataProcessing,
+        2 => selectedCompanies.Count > 0,
+        3 => selectedSkills.Count > 0 && !string.IsNullOrEmpty(selectedExperience),
+        4 => true, // Resume is optional
+        _ => true
+    };
+
+    // Company methods
+    private void HandleCompanyKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(companySearch) && selectedCompanies.Count < 10)
+        {
+            AddCompany(companySearch);
+        }
+    }
+
+    private void AddCompany(string company)
+    {
+        if (selectedCompanies.Count < 10 && !selectedCompanies.Contains(company))
+        {
+            selectedCompanies.Add(company);
+            companySearch = "";
+        }
+    }
+
+    private void RemoveCompany(string company) => selectedCompanies.Remove(company);
+
+    // Skill methods
+    private void HandleSkillKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(skillSearch))
+        {
+            AddSkill(skillSearch);
+        }
+    }
+
+    private void AddSkill(string skill)
+    {
+        if (!selectedSkills.Contains(skill))
+        {
+            selectedSkills.Add(skill);
+            skillSearch = "";
+        }
+    }
+
+    private void RemoveSkill(string skill) => selectedSkills.Remove(skill);
+
+    // Resume methods
+    private void HandleDragEnter() => isDragging = true;
+    private void HandleDragLeave() => isDragging = false;
+    private void HandleDrop() => isDragging = false;
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null && file.Size <= 5 * 1024 * 1024) // 5MB limit
+        {
+            isUploading = true;
+            StateHasChanged();
+
+            // Simulate upload delay
+            await Task.Delay(1500);
+
+            resumeFileName = file.Name;
+            resumeUploaded = true;
+            isUploading = false;
+        }
+    }
+
+    private void RemoveResume()
+    {
+        resumeUploaded = false;
+        resumeFileName = "";
+    }
+
+    private async Task CompleteOnboarding()
+    {
+        // Save user preferences to API
+        try
+        {
+            // TODO: Call API to save onboarding data
+            // await Api.SaveOnboardingDataAsync(new OnboardingData { ... });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving onboarding data: {ex.Message}");
+        }
+
+        Navigation.NavigateTo("/jobs");
+    }
+
+    private void GoToResumes()
+    {
+        Navigation.NavigateTo("/resumes");
+    }
+}
+
+<style>
+    .onboarding-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .onboarding-container {
+        max-width: 700px;
+        width: 100%;
+    }
+
+    /* Progress Steps */
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        padding: 0 1rem;
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        opacity: 0.5;
+        transition: all 0.3s;
+    }
+
+    .step.active, .step.completed {
+        opacity: 1;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .step.active .step-number {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .step.completed .step-number {
+        background: var(--success);
+        border-color: var(--success);
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .step.active .step-label {
+        color: var(--text-primary);
+    }
+
+    /* Step Content */
+    .step-content {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .step-panel {
+        text-align: center;
+    }
+
+    .step-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .step-panel h1, .step-panel h2 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .step-panel > p {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+
+    /* Consent Section */
+    .consent-section {
+        text-align: left;
+        margin: 2rem 0;
+    }
+
+    .consent-section h3 {
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    .consent-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .consent-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .consent-item input {
+        margin-top: 0.25rem;
+    }
+
+    .consent-text strong {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .consent-text p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* Company Selection */
+    .search-box {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: white;
+        font-size: 1rem;
+    }
+
+    .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-top: 0.5rem;
+        z-index: 10;
+        overflow: hidden;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(139, 92, 246, 0.2);
+    }
+
+    .company-logo, .chip-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+    }
+
+    .selected-companies {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+        min-height: 50px;
+    }
+
+    .company-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid var(--primary);
+        border-radius: 50px;
+    }
+
+    .chip-logo {
+        width: 24px;
+        height: 24px;
+        font-size: 0.75rem;
+    }
+
+    .chip-remove {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.25rem;
+        padding: 0 0.25rem;
+    }
+
+    .limit-message {
+        color: var(--success);
+        font-size: 0.9rem;
+    }
+
+    .hint-message {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .suggested-companies {
+        margin-top: 2rem;
+        text-align: left;
+    }
+
+    .suggested-companies h4 {
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+    }
+
+    .company-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .company-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .company-btn:hover:not(:disabled) {
+        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--primary);
+        color: var(--text-primary);
+    }
+
+    .company-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .company-logo-small {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    /* Skills Section */
+    .form-section {
+        text-align: left;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section > label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 500;
+    }
+
+    .experience-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .exp-btn {
+        padding: 0.75rem 1.25rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .exp-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .selected-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+        min-height: 40px;
+    }
+
+    .skill-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: rgba(6, 182, 212, 0.2);
+        border: 1px solid var(--secondary);
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .suggested-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .suggest-label {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .skill-suggest-btn {
+        padding: 0.375rem 0.75rem;
+        background: none;
+        border: 1px dashed var(--border);
+        border-radius: 20px;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .skill-suggest-btn:hover {
+        border-color: var(--secondary);
+        color: var(--secondary);
+    }
+
+    .location-options {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .location-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .location-options input[type="text"] {
+        flex: 1;
+    }
+
+    /* Resume Upload */
+    .upload-area {
+        border: 2px dashed var(--border);
+        border-radius: 16px;
+        padding: 3rem;
+        transition: all 0.3s;
+        margin-bottom: 2rem;
+    }
+
+    .upload-area.dragging {
+        border-color: var(--primary);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .upload-area.uploaded {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .upload-prompt h3 {
+        margin-bottom: 0.5rem;
+    }
+
+    .file-hint {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 1rem;
+    }
+
+    .upload-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    .upload-success .success-icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 1rem;
+    }
+
+    .ats-info {
+        text-align: left;
+        background: rgba(139, 92, 246, 0.1);
+        padding: 1.5rem;
+        border-radius: 12px;
+    }
+
+    .ats-info h4 {
+        margin-bottom: 1rem;
+    }
+
+    .ats-info ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+
+    .ats-info li {
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+    }
+
+    /* Complete Step */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+
+    .summary-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .summary-card .card-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-card h4 {
+        margin: 0 0 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .summary-card p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .next-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Navigation */
+    .step-navigation {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .skip-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 0.75rem;
+    }
+
+    .skip-btn:hover {
+        color: var(--text-secondary);
+    }
+
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 600px) {
+        .progress-steps {
+            padding: 0;
+        }
+
+        .step-label {
+            display: none;
+        }
+
+        .step-content {
+            padding: 1.5rem;
+        }
+
+        .location-options {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>

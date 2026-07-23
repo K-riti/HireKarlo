@@ -212,6 +212,7 @@ public class JobDto
     public List<string> Skills { get; set; } = new();
     public string? Description { get; set; }
     public bool IsSaved { get; set; }
+    public string? ApplyUrl { get; set; }
 }
 
 public record MatchResultDto(int OverallScore, int SemanticScore, int KeywordScore, List<string> Strengths, List<string> Gaps, List<string> Recommendations);

@@ -1,160 +1,471 @@
 @page "/jobs"
 @rendermode InteractiveAuto
 @inject ApiClient Api
+@inject NavigationManager Navigation
 
-<PageTitle>Job Search - HireKarlo</PageTitle>
+<PageTitle>🎯 Quest Board - HireKarlo</PageTitle>
+
+<!-- ATS Score Modal -->
+@if (showAtsModal)
+{
+    <div class="modal-overlay" @onclick="CloseAtsModal">
+        <div class="ats-modal" @onclick:stopPropagation="true">
+            <button class="modal-close" @onclick="CloseAtsModal">×</button>
+
+            @if (isAnalyzing)
+            {
+                <div class="analyzing-state">
+                    <div class="analyzing-animation">
+                        <div class="scan-line"></div>
+                        📄
+                    </div>
+                    <h3>Analyzing Your Resume...</h3>
+                    <p>Comparing your skills with job requirements</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill animate"></div>
+                    </div>
+                </div>
+            }
+            else if (atsResult != null)
+            {
+                <div class="ats-result">
+                    <div class="result-header">
+                        <div class="score-circle @GetAtsScoreClass(atsResult.Score)">
+                            <span class="score-value">@atsResult.Score%</span>
+                            <span class="score-label">ATS Match</span>
+                        </div>
+                        <div class="result-info">
+                            <h3>@GetAtsScoreTitle(atsResult.Score)</h3>
+                            <p>@GetAtsScoreDescription(atsResult.Score)</p>
+                        </div>
+                    </div>
+
+                    <div class="result-sections">
+                        <div class="result-section matched">
+                            <h4>✅ Matching Skills (@atsResult.MatchedSkills.Count)</h4>
+                            <div class="skill-tags">
+                                @foreach (var skill in atsResult.MatchedSkills)
+                                {
+                                    <span class="skill-tag matched">@skill</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (atsResult.MissingSkills.Any())
+                        {
+                            <div class="result-section missing">
+                                <h4>⚠️ Missing Keywords (@atsResult.MissingSkills.Count)</h4>
+                                <div class="skill-tags">
+                                    @foreach (var skill in atsResult.MissingSkills)
+                                    {
+                                        <span class="skill-tag missing">@skill</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (atsResult.Suggestions.Any())
+                        {
+                            <div class="result-section suggestions">
+                                <h4>💡 Suggestions</h4>
+                                <ul>
+                                    @foreach (var suggestion in atsResult.Suggestions)
+                                    {
+                                        <li>@suggestion</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="modal-actions">
+                        @if (atsResult.Score >= 70)
+                        {
+                            <button class="btn btn-primary" @onclick="ProceedToApply">
+                                🚀 Apply Now
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary" @onclick="GoToTailorResume">
+                                ✏️ Improve Resume First
+                            </button>
+                            <button class="btn btn-ghost" @onclick="ProceedToApply">
+                                Apply Anyway
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-resume-state">
+                    <div class="no-resume-icon">📄❓</div>
+                    <h3>No Resume Found</h3>
+                    <p>Upload your resume to get an ATS match score before applying</p>
+                    <button class="btn btn-primary" @onclick="GoToUploadResume">
+                        📤 Upload Resume
+                    </button>
+                    <button class="btn btn-ghost" @onclick="ProceedToApply">
+                        Skip & Apply Anyway
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
 
 <div class="jobs-page">
-    <div class="jobs-header">
-        <h1>🎯 Find Your Dream Job</h1>
-        <p>Discover opportunities matched to your skills</p>
+    <!-- 🏰 Quest Board Header -->
+    <div class="quest-header">
+        <div class="header-content">
+            <div class="header-badge">🗺️ Quest Board</div>
+            <h1>Find Your Next <span class="gradient-text">Adventure</span></h1>
+            <p>@jobs.Count quests available • Level up your career!</p>
+        </div>
     </div>
 
+    <!-- 🔍 Enhanced Search Section -->
     <div class="search-section">
-        <div class="search-bar">
-            <input type="text" @bind="searchQuery" @bind:event="oninput" placeholder="Job title, skills, or company..." />
-            <input type="text" @bind="location" placeholder="Location" />
-            <label class="remote-toggle">
-                <input type="checkbox" @bind="remoteOnly" />
-                <span>Remote only</span>
-            </label>
-            <button class="btn btn-primary" @onclick="SearchJobs">Search</button>
+        <div class="search-container">
+            <div class="search-main">
+                <div class="search-input-group">
+                    <span class="input-icon">🔍</span>
+                    <input type="text" @bind="searchQuery" @bind:event="oninput" 
+                           @onkeydown="HandleKeyDown"
+                           placeholder="Search jobs, skills, or companies..." />
+                </div>
+                <div class="search-input-group">
+                    <span class="input-icon">📍</span>
+                    <input type="text" @bind="location" placeholder="Location (or 'Remote')" />
+                </div>
+                <button class="btn btn-primary search-btn" @onclick="SearchJobs" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="loading-spinner-small"></span>
+                    }
+                    else
+                    {
+                        <span>Search</span>
+                    }
+                </button>
+            </div>
+
+            <!-- Quick Filters -->
+            <div class="quick-filters">
+                <button class="filter-chip @(remoteOnly ? "active" : "")" @onclick="ToggleRemote">
+                    🏠 Remote
+                </button>
+                <button class="filter-chip @(experienceLevel == "entry" ? "active" : "")" 
+                        @onclick='() => SetExperience("entry")'>
+                    🌱 Entry Level
+                </button>
+                <button class="filter-chip @(experienceLevel == "mid" ? "active" : "")" 
+                        @onclick='() => SetExperience("mid")'>
+                    🚀 Mid Level
+                </button>
+                <button class="filter-chip @(experienceLevel == "senior" ? "active" : "")" 
+                        @onclick='() => SetExperience("senior")'>
+                    👑 Senior
+                </button>
+                <button class="filter-chip @(postedWithin == "7" ? "active" : "")" 
+                        @onclick='() => SetPostedWithin("7")'>
+                    ⚡ Last 7 Days
+                </button>
+            </div>
         </div>
     </div>
 
     <div class="jobs-content">
-        <div class="filters-sidebar">
-            <h3>Filters</h3>
-            <div class="filter-group">
-                <label>Experience Level</label>
-                <select @bind="experienceLevel">
-                    <option value="">All Levels</option>
-                    <option value="entry">Entry Level</option>
-                    <option value="mid">Mid Level</option>
-                    <option value="senior">Senior</option>
-                    <option value="lead">Lead/Principal</option>
-                </select>
+        <!-- 📋 Side Filters Panel -->
+        <aside class="filters-panel @(showFilters ? "open" : "")">
+            <div class="filters-header">
+                <h3>🎛️ Filters</h3>
+                <button class="btn-ghost" @onclick="ClearFilters">Clear All</button>
             </div>
-            <div class="filter-group">
-                <label>Job Type</label>
-                <select @bind="jobType">
-                    <option value="">All Types</option>
-                    <option value="fulltime">Full-time</option>
-                    <option value="contract">Contract</option>
-                    <option value="parttime">Part-time</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Posted Within</label>
-                <select @bind="postedWithin">
-                    <option value="7">Last 7 days</option>
-                    <option value="14">Last 14 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="">Any time</option>
-                </select>
-            </div>
-        </div>
 
+            <div class="filter-section">
+                <label>⚔️ Experience Level</label>
+                <div class="filter-options">
+                    <label class="filter-option @(experienceLevel == "" ? "selected" : "")">
+                        <input type="radio" name="exp" checked="@(experienceLevel == "")" 
+                               @onchange='() => experienceLevel = ""' />
+                        <span>All Levels</span>
+                    </label>
+                    <label class="filter-option @(experienceLevel == "entry" ? "selected" : "")">
+                        <input type="radio" name="exp" checked="@(experienceLevel == "entry")" 
+                               @onchange='() => experienceLevel = "entry"' />
+                        <span>🌱 Entry Level</span>
+                    </label>
+                    <label class="filter-option @(experienceLevel == "mid" ? "selected" : "")">
+                        <input type="radio" name="exp" checked="@(experienceLevel == "mid")" 
+                               @onchange='() => experienceLevel = "mid"' />
+                        <span>🚀 Mid Level</span>
+                    </label>
+                    <label class="filter-option @(experienceLevel == "senior" ? "selected" : "")">
+                        <input type="radio" name="exp" checked="@(experienceLevel == "senior")" 
+                               @onchange='() => experienceLevel = "senior"' />
+                        <span>👑 Senior</span>
+                    </label>
+                    <label class="filter-option @(experienceLevel == "lead" ? "selected" : "")">
+                        <input type="radio" name="exp" checked="@(experienceLevel == "lead")" 
+                               @onchange='() => experienceLevel = "lead"' />
+                        <span>🎖️ Lead/Principal</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <label>📋 Job Type</label>
+                <div class="filter-options">
+                    <label class="filter-option @(jobType == "" ? "selected" : "")">
+                        <input type="radio" name="type" checked="@(jobType == "")" 
+                               @onchange='() => jobType = ""' />
+                        <span>All Types</span>
+                    </label>
+                    <label class="filter-option @(jobType == "fulltime" ? "selected" : "")">
+                        <input type="radio" name="type" checked="@(jobType == "fulltime")" 
+                               @onchange='() => jobType = "fulltime"' />
+                        <span>⏰ Full-time</span>
+                    </label>
+                    <label class="filter-option @(jobType == "contract" ? "selected" : "")">
+                        <input type="radio" name="type" checked="@(jobType == "contract")" 
+                               @onchange='() => jobType = "contract"' />
+                        <span>📝 Contract</span>
+                    </label>
+                    <label class="filter-option @(jobType == "parttime" ? "selected" : "")">
+                        <input type="radio" name="type" checked="@(jobType == "parttime")" 
+                               @onchange='() => jobType = "parttime"' />
+                        <span>⏳ Part-time</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <label>📅 Posted Within</label>
+                <div class="filter-options">
+                    <label class="filter-option @(postedWithin == "1" ? "selected" : "")">
+                        <input type="radio" name="posted" checked="@(postedWithin == "1")" 
+                               @onchange='() => postedWithin = "1"' />
+                        <span>🔥 Last 24 Hours</span>
+                    </label>
+                    <label class="filter-option @(postedWithin == "7" ? "selected" : "")">
+                        <input type="radio" name="posted" checked="@(postedWithin == "7")" 
+                               @onchange='() => postedWithin = "7"' />
+                        <span>⚡ Last 7 Days</span>
+                    </label>
+                    <label class="filter-option @(postedWithin == "30" ? "selected" : "")">
+                        <input type="radio" name="posted" checked="@(postedWithin == "30")" 
+                               @onchange='() => postedWithin = "30"' />
+                        <span>📆 Last 30 Days</span>
+                    </label>
+                    <label class="filter-option @(postedWithin == "" ? "selected" : "")">
+                        <input type="radio" name="posted" checked="@(postedWithin == "")" 
+                               @onchange='() => postedWithin = ""' />
+                        <span>🌍 Any Time</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-full" @onclick="SearchJobs">Apply Filters</button>
+        </aside>
+
+        <!-- 📜 Jobs List -->
         <div class="jobs-list">
+            <div class="list-header">
+                <button class="filter-toggle" @onclick="ToggleFilters">
+                    🎛️ Filters
+                </button>
+                <span class="results-count">
+                    @if (isLoading)
+                    {
+                        <span>Searching...</span>
+                    }
+                    else
+                    {
+                        <span>@jobs.Count quests found</span>
+                    }
+                </span>
+                <select class="sort-select" @bind="sortBy">
+                    <option value="relevance">🎯 Most Relevant</option>
+                    <option value="date">📅 Most Recent</option>
+                    <option value="match">💎 Best Match</option>
+                </select>
+            </div>
+
             @if (isLoading)
             {
-                <div class="loading">Searching jobs...</div>
+                <div class="loading-state">
+                    <div class="loading-icon">🔮</div>
+                    <p>Searching the realm for opportunities...</p>
+                    <div class="loading-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
             }
             else if (jobs.Any())
             {
-                <div class="results-header">
-                    <span>@jobs.Count jobs found</span>
-                    <select @bind="sortBy">
-                        <option value="relevance">Most Relevant</option>
-                        <option value="date">Most Recent</option>
-                        <option value="match">Best Match</option>
-                    </select>
-                </div>
+                <div class="jobs-grid">
+                    @foreach (var job in jobs)
+                    {
+                        <div class="job-card @(selectedJob?.Id == job.Id ? "selected" : "")" 
+                             @onclick="() => SelectJob(job)">
+                            <div class="card-highlight"></div>
 
-                @foreach (var job in jobs)
-                {
-                    <div class="job-card @(selectedJob?.Id == job.Id ? "selected" : "")" @onclick="() => SelectJob(job)">
-                        <div class="job-header">
-                            <div class="company-logo">@job.Company[0]</div>
-                            <div class="job-info">
-                                <h3>@job.Title</h3>
-                                <p class="company">@job.Company</p>
-                                <p class="location">📍 @job.Location @(job.IsRemote ? "• Remote" : "")</p>
+                            <div class="job-card-header">
+                                <div class="company-avatar">
+                                    <span>@job.Company[0]</span>
+                                </div>
+                                <div class="job-primary-info">
+                                    <h3>@job.Title</h3>
+                                    <p class="company-name">@job.Company</p>
+                                </div>
+                                @if (job.MatchScore > 0)
+                                {
+                                    <div class="match-badge @GetMatchClass(job.MatchScore)">
+                                        <span class="match-icon">@GetMatchIcon(job.MatchScore)</span>
+                                        <span>@job.MatchScore%</span>
+                                    </div>
+                                }
                             </div>
-                            @if (job.MatchScore > 0)
-                            {
-                                <div class="match-score @GetMatchClass(job.MatchScore)">@job.MatchScore% Match</div>
-                            }
+
+                            <div class="job-meta">
+                                <span class="meta-item">
+                                    <span class="meta-icon">📍</span>
+                                    @job.Location
+                                </span>
+                                @if (job.IsRemote)
+                                {
+                                    <span class="meta-item remote">
+                                        <span class="meta-icon">🏠</span>
+                                        Remote
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(job.SalaryRange))
+                                {
+                                    <span class="meta-item salary">
+                                        <span class="meta-icon">💰</span>
+                                        @job.SalaryRange
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="job-skills">
+                                @foreach (var skill in job.Skills.Take(4))
+                                {
+                                    <span class="skill-chip">@skill</span>
+                                }
+                                @if (job.Skills.Count > 4)
+                                {
+                                    <span class="skill-chip more">+@(job.Skills.Count - 4)</span>
+                                }
+                            </div>
+
+                            <div class="job-card-footer">
+                                <span class="posted-time">
+                                    <span>⏰</span> @GetPostedText(job.PostedDate)
+                                </span>
+                                <div class="card-actions">
+                                    <button class="action-btn save @(job.IsSaved ? "saved" : "")" 
+                                            @onclick:stopPropagation="true" 
+                                            @onclick="() => SaveJob(job)"
+                                            title="@(job.IsSaved ? "Saved" : "Save")">
+                                        @(job.IsSaved ? "⭐" : "☆")
+                                    </button>
+                                    <button class="action-btn apply" 
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => QuickApply(job)">
+                                        Apply →
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="job-tags">
-                            @foreach (var skill in job.Skills.Take(4))
-                            {
-                                <span class="tag">@skill</span>
-                            }
-                        </div>
-                        <div class="job-footer">
-                            <span class="posted">@GetPostedText(job.PostedDate)</span>
-                            <button class="btn btn-small" @onclick:stopPropagation="true" @onclick="() => SaveJob(job)">
-                                @(job.IsSaved ? "★ Saved" : "☆ Save")
-                            </button>
-                        </div>
-                    </div>
-                }
+                    }
+                </div>
             }
             else
             {
-                <div class="no-results">
-                    <span class="icon">🔍</span>
-                    <h3>No jobs found</h3>
-                    <p>Try adjusting your search or filters</p>
+                <div class="empty-state">
+                    <div class="empty-icon">🗺️</div>
+                    <h3>No Quests Found</h3>
+                    <p>Try adjusting your search or filters to discover new opportunities</p>
+                    <button class="btn btn-secondary" @onclick="ClearFilters">Clear Filters</button>
                 </div>
             }
         </div>
 
+        <!-- 📖 Job Details Panel -->
         @if (selectedJob != null)
         {
-            <div class="job-details">
+            <aside class="details-panel">
+                <button class="close-btn" @onclick="() => selectedJob = null">✕</button>
+
                 <div class="details-header">
+                    <div class="company-avatar large">
+                        <span>@selectedJob.Company[0]</span>
+                    </div>
                     <h2>@selectedJob.Title</h2>
                     <p class="company">@selectedJob.Company</p>
-                    <p class="location">📍 @selectedJob.Location</p>
-                    @if (selectedJob.SalaryRange != null)
+
+                    <div class="details-meta">
+                        <span>📍 @selectedJob.Location</span>
+                        @if (selectedJob.IsRemote)
+                        {
+                            <span class="remote-badge">🏠 Remote Available</span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(selectedJob.SalaryRange))
                     {
-                        <p class="salary">💰 @selectedJob.SalaryRange</p>
+                        <div class="salary-display">
+                            <span class="salary-icon">💰</span>
+                            <span>@selectedJob.SalaryRange</span>
+                        </div>
                     }
                 </div>
 
                 <div class="details-actions">
-                    <button class="btn btn-primary" @onclick="ApplyToJob">Apply Now</button>
-                    <button class="btn btn-secondary" @onclick="TailorResume">Tailor Resume</button>
+                    <button class="btn btn-primary btn-glow" @onclick="ApplyToJob">
+                        🎯 Apply Now
+                    </button>
+                    <button class="btn btn-secondary" @onclick="TailorResume">
+                        ✨ Tailor Resume
+                    </button>
+                </div>
+
+                @if (selectedJob.MatchScore > 0)
+                {
+                    <div class="match-section">
+                        <h4>🎯 Match Analysis</h4>
+                        <div class="match-circle-container">
+                            <div class="match-circle @GetMatchClass(selectedJob.MatchScore)">
+                                <span class="match-value">@selectedJob.MatchScore%</span>
+                                <span class="match-label">Match</span>
+                            </div>
+                        </div>
+                        <div class="match-bar-container">
+                            <div class="match-bar">
+                                <div class="match-fill" style="width: @(selectedJob.MatchScore)%"></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="details-section">
+                    <h4>📝 Description</h4>
+                    <p class="description">@(selectedJob.Description ?? "No description available.")</p>
                 </div>
 
                 <div class="details-section">
-                    <h4>Job Description</h4>
-                    <p>@selectedJob.Description</p>
-                </div>
-
-                <div class="details-section">
-                    <h4>Required Skills</h4>
-                    <div class="skills-list">
+                    <h4>🛠️ Required Skills</h4>
+                    <div class="skills-grid">
                         @foreach (var skill in selectedJob.Skills)
                         {
                             <span class="skill-tag">@skill</span>
                         }
                     </div>
                 </div>
-
-                @if (selectedJob.MatchScore > 0)
-                {
-                    <div class="match-analysis">
-                        <h4>Match Analysis</h4>
-                        <div class="match-bar">
-                            <div class="match-fill" style="width: @(selectedJob.MatchScore)%"></div>
-                        </div>
-                        <p>@selectedJob.MatchScore% match with your profile</p>
-                    </div>
-                }
-            </div>
+            </aside>
         }
     </div>
 </div>
@@ -170,27 +481,98 @@
     private string postedWithin = "7";
     private string sortBy = "relevance";
     private bool isLoading;
+    private bool showFilters;
+    private bool isFirstRender = true;
+
+    // ATS Modal state
+    private bool showAtsModal;
+    private bool isAnalyzing;
+    private AtsResult? atsResult;
+    private JobDto? pendingApplyJob;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            isFirstRender = false;
             await SearchJobs();
             StateHasChanged();
         }
     }
 
-    private async Task SearchJobs()
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        isLoading = true;
-        jobs = await Api.SearchJobsAsync(searchQuery, location, remoteOnly) ?? new List<JobDto>();
-        isLoading = false;
+        if (e.Key == "Enter")
+        {
+            await SearchJobs();
+        }
     }
 
-    private void SelectJob(JobDto job)
+    private async Task SearchJobs()
     {
-        selectedJob = job;
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Simulate API delay for better UX feel
+            if (!isFirstRender)
+            {
+                await Task.Delay(300);
+            }
+
+            jobs = await Api.SearchJobsAsync(searchQuery, location, remoteOnly) ?? new List<JobDto>();
+
+            // Apply client-side sorting
+            jobs = sortBy switch
+            {
+                "date" => jobs.OrderByDescending(j => j.PostedDate).ToList(),
+                "match" => jobs.OrderByDescending(j => j.MatchScore).ToList(),
+                _ => jobs
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching jobs: {ex.Message}");
+            jobs = new List<JobDto>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
+
+    private void ToggleRemote()
+    {
+        remoteOnly = !remoteOnly;
+        _ = SearchJobs();
+    }
+
+    private void SetExperience(string level)
+    {
+        experienceLevel = experienceLevel == level ? "" : level;
+    }
+
+    private void SetPostedWithin(string days)
+    {
+        postedWithin = postedWithin == days ? "" : days;
+    }
+
+    private void ToggleFilters() => showFilters = !showFilters;
+
+    private void ClearFilters()
+    {
+        searchQuery = "";
+        location = "";
+        remoteOnly = false;
+        experienceLevel = "";
+        jobType = "";
+        postedWithin = "7";
+        _ = SearchJobs();
+    }
+
+    private void SelectJob(JobDto job) => selectedJob = job;
 
     private async Task SaveJob(JobDto job)
     {
@@ -198,23 +580,1119 @@
         // Would call API to save
     }
 
+    private async Task QuickApply(JobDto job)
+    {
+        selectedJob = job;
+        await StartApplyFlow(job);
+    }
+
     private async Task ApplyToJob()
     {
         if (selectedJob == null) return;
-        // Navigate to application flow
+        await StartApplyFlow(selectedJob);
     }
+
+    private async Task StartApplyFlow(JobDto job)
+    {
+        pendingApplyJob = job;
+        showAtsModal = true;
+        isAnalyzing = true;
+        atsResult = null;
+        StateHasChanged();
+
+        // Simulate ATS analysis (in real app, call API)
+        await Task.Delay(2000);
+
+        // Generate mock ATS result based on job skills
+        atsResult = GenerateMockAtsResult(job);
+        isAnalyzing = false;
+        StateHasChanged();
+    }
+
+    private AtsResult GenerateMockAtsResult(JobDto job)
+    {
+        // In real implementation, this would call the API to compare user's resume with job
+        var random = new Random();
+        var matchedCount = random.Next(3, job.Skills.Count);
+        var matchedSkills = job.Skills.Take(matchedCount).ToList();
+        var missingSkills = job.Skills.Skip(matchedCount).ToList();
+        var score = (int)((double)matchedCount / job.Skills.Count * 100);
+
+        var suggestions = new List<string>();
+        if (score < 70)
+        {
+            suggestions.Add($"Add keywords like '{string.Join("', '", missingSkills.Take(2))}' to your resume");
+            suggestions.Add("Quantify your achievements with specific metrics");
+        }
+        if (score < 50)
+        {
+            suggestions.Add("Consider getting certified in the required technologies");
+        }
+
+        return new AtsResult
+        {
+            Score = score,
+            MatchedSkills = matchedSkills,
+            MissingSkills = missingSkills,
+            Suggestions = suggestions
+        };
+    }
+
+    private void CloseAtsModal()
+    {
+        showAtsModal = false;
+        isAnalyzing = false;
+        atsResult = null;
+        pendingApplyJob = null;
+    }
+
+    private void ProceedToApply()
+    {
+        if (pendingApplyJob != null && !string.IsNullOrEmpty(pendingApplyJob.ApplyUrl))
+        {
+            // Open the job application URL in a new tab
+            Navigation.NavigateTo(pendingApplyJob.ApplyUrl, forceLoad: true);
+        }
+        CloseAtsModal();
+    }
+
+    private void GoToTailorResume()
+    {
+        CloseAtsModal();
+        Navigation.NavigateTo("/resumes");
+    }
+
+    private void GoToUploadResume()
+    {
+        CloseAtsModal();
+        Navigation.NavigateTo("/resumes");
+    }
+
+    private string GetAtsScoreClass(int score) => score >= 80 ? "excellent" : score >= 60 ? "good" : score >= 40 ? "fair" : "poor";
+
+    private string GetAtsScoreTitle(int score) => score switch
+    {
+        >= 90 => "Excellent Match! 🎉",
+        >= 70 => "Good Match! ✨",
+        >= 50 => "Moderate Match",
+        _ => "Low Match ⚠️"
+    };
+
+    private string GetAtsScoreDescription(int score) => score switch
+    {
+        >= 90 => "Your resume is an excellent fit for this position.",
+        >= 70 => "Your resume matches most of the job requirements.",
+        >= 50 => "Consider adding missing keywords to improve your chances.",
+        _ => "Your resume may need significant improvements for this role."
+    };
 
     private async Task TailorResume()
     {
         if (selectedJob == null) return;
-        // Navigate to resume tailoring
+        Navigation.NavigateTo("/resumes");
     }
 
     private string GetMatchClass(int score) => score >= 80 ? "high" : score >= 60 ? "medium" : "low";
 
+    private string GetMatchIcon(int score) => score >= 80 ? "🔥" : score >= 60 ? "✨" : "💫";
+
     private string GetPostedText(DateTime date)
     {
         var days = (DateTime.Now - date).Days;
-        return days == 0 ? "Today" : days == 1 ? "Yesterday" : $"{days} days ago";
+        return days == 0 ? "Today" : days == 1 ? "Yesterday" : $"{days}d ago";
+    }
+
+    // ATS Result model
+    private class AtsResult
+    {
+        public int Score { get; set; }
+        public List<string> MatchedSkills { get; set; } = new();
+        public List<string> MissingSkills { get; set; } = new();
+        public List<string> Suggestions { get; set; } = new();
     }
 }
+
+<style>
+    .jobs-page {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* Quest Header */
+    .quest-header {
+        text-align: center;
+        padding: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .header-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .quest-header h1 {
+        font-size: 2.5rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .quest-header p {
+        color: var(--text-secondary);
+    }
+
+    /* Search Section */
+    .search-section {
+        padding: 0 1rem 1.5rem;
+    }
+
+    .search-container {
+        background: rgba(20, 20, 40, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+
+    .search-main {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .search-input-group {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+    }
+
+    .search-input-group input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 3rem;
+        border-radius: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        transition: all 0.3s;
+    }
+
+    .search-input-group input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .search-btn {
+        padding: 0.875rem 2rem;
+        min-width: 120px;
+    }
+
+    .loading-spinner-small {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    /* Quick Filters */
+    .quick-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-chip:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .filter-chip.active {
+        background: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    /* Content Layout */
+    .jobs-content {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 1.5rem;
+        padding: 0 1rem;
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+        background: rgba(20, 20, 40, 0.6);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        height: fit-content;
+        position: sticky;
+        top: 90px;
+    }
+
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .filters-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .filter-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-section > label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .filter-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.875rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-secondary);
+    }
+
+    .filter-option:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .filter-option.selected {
+        background: var(--primary-light);
+        color: var(--primary);
+    }
+
+    .filter-option input {
+        display: none;
+    }
+
+    /* Jobs List */
+    .jobs-list {
+        min-width: 0;
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+
+    .filter-toggle {
+        display: none;
+        padding: 0.5rem 1rem;
+        background: var(--bg-glass);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+
+    .results-count {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    .sort-select {
+        padding: 0.5rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    /* Jobs Grid */
+    .jobs-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Job Card */
+    .job-card {
+        position: relative;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.5), rgba(20, 20, 40, 0.7));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        overflow: hidden;
+    }
+
+    .card-highlight {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .job-card:hover {
+        transform: translateX(4px);
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .job-card:hover .card-highlight {
+        opacity: 1;
+    }
+
+    .job-card.selected {
+        border-color: var(--primary);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .job-card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .company-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .company-avatar.large {
+        width: 64px;
+        height: 64px;
+        font-size: 1.5rem;
+    }
+
+    .job-primary-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .job-primary-info h3 {
+        font-size: 1.1rem;
+        color: white;
+        margin: 0 0 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .company-name {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    .match-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .match-badge.high {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+
+    .match-badge.medium {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+    }
+
+    .match-badge.low {
+        background: rgba(99, 102, 241, 0.2);
+        color: #8b5cf6;
+    }
+
+    .job-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .meta-item.remote {
+        color: var(--secondary);
+    }
+
+    .meta-item.salary {
+        color: var(--success);
+    }
+
+    .job-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .skill-chip {
+        padding: 0.25rem 0.75rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 50px;
+        font-size: 0.75rem;
+        color: var(--primary);
+    }
+
+    .skill-chip.more {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+    }
+
+    .job-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .posted-time {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        background: var(--bg-glass);
+        color: var(--text-secondary);
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .action-btn.save:hover,
+    .action-btn.save.saved {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+
+    .action-btn.apply {
+        background: var(--primary);
+        color: white;
+    }
+
+    .action-btn.apply:hover {
+        background: var(--primary-hover);
+    }
+
+    /* Details Panel */
+    .details-panel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 420px;
+        height: 100vh;
+        background: rgba(15, 15, 35, 0.98);
+        border-left: 1px solid var(--border);
+        padding: 2rem;
+        overflow-y: auto;
+        z-index: 200;
+        animation: slideIn 0.3s ease;
+    }
+
+    @@keyframes slideIn {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--bg-glass);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+        background: var(--error-bg);
+        border-color: var(--error);
+        color: var(--error);
+    }
+
+    .details-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .details-header h2 {
+        font-size: 1.5rem;
+        margin: 1rem 0 0.25rem;
+    }
+
+    .details-header .company {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    .details-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .details-meta span {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .remote-badge {
+        background: rgba(6, 182, 212, 0.15);
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        color: var(--secondary) !important;
+    }
+
+    .salary-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(16, 185, 129, 0.15);
+        border-radius: 8px;
+        color: var(--success);
+        font-weight: 600;
+    }
+
+    .details-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .details-actions .btn {
+        flex: 1;
+    }
+
+    .btn-glow {
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+
+    .match-section {
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .match-section h4 {
+        margin: 0 0 1rem;
+    }
+
+    .match-circle-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .match-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid;
+    }
+
+    .match-circle.high {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .match-circle.medium {
+        border-color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .match-circle.low {
+        border-color: var(--primary);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .match-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .match-label {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+    }
+
+    .match-bar-container {
+        padding: 0 1rem;
+    }
+
+    .match-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .match-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .details-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .details-section h4 {
+        margin: 0 0 0.75rem;
+        font-size: 1rem;
+    }
+
+    .description {
+        color: var(--text-secondary);
+        line-height: 1.7;
+    }
+
+    .skills-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .skill-tag {
+        padding: 0.375rem 0.875rem;
+        background: rgba(139, 92, 246, 0.15);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: var(--primary);
+    }
+
+    /* Loading & Empty States */
+    .loading-state,
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+
+    .loading-icon,
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .empty-state h3 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+
+    /* ATS Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+
+    .ats-modal {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.95), rgba(20, 20, 40, 0.98));
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 2rem;
+        max-width: 550px;
+        width: 100%;
+        position: relative;
+        animation: modalIn 0.3s ease;
+    }
+
+    @@keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: var(--error);
+        color: var(--error);
+    }
+
+    .analyzing-state {
+        text-align: center;
+        padding: 2rem 0;
+    }
+
+    .analyzing-animation {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        display: inline-block;
+    }
+
+    .scan-line {
+        position: absolute;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        top: 0;
+        left: 0;
+        animation: scan 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes scan {
+        0%, 100% { top: 0; }
+        50% { top: 100%; }
+    }
+
+    .progress-bar {
+        width: 80%;
+        height: 6px;
+        background: var(--bg-secondary);
+        border-radius: 3px;
+        margin: 1.5rem auto 0;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 3px;
+    }
+
+    .progress-fill.animate {
+        animation: progressAnim 2s ease-in-out infinite;
+    }
+
+    @@keyframes progressAnim {
+        0% { width: 0%; }
+        50% { width: 80%; }
+        100% { width: 100%; }
+    }
+
+    .ats-result {
+        text-align: center;
+    }
+
+    .result-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .score-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid;
+        flex-shrink: 0;
+    }
+
+    .score-circle.excellent {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .score-circle.good {
+        border-color: var(--secondary);
+        background: rgba(6, 182, 212, 0.1);
+    }
+
+    .score-circle.fair {
+        border-color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .score-circle.poor {
+        border-color: var(--error);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .score-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .score-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .result-info {
+        text-align: left;
+    }
+
+    .result-info h3 {
+        margin: 0 0 0.5rem;
+        color: white;
+    }
+
+    .result-info p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .result-sections {
+        text-align: left;
+        margin-bottom: 1.5rem;
+    }
+
+    .result-section {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+    }
+
+    .result-section h4 {
+        margin: 0 0 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .skill-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .skill-tag {
+        padding: 0.375rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+    }
+
+    .skill-tag.matched {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid var(--success);
+        color: var(--success);
+    }
+
+    .skill-tag.missing {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid var(--error);
+        color: #fca5a5;
+    }
+
+    .result-section.suggestions ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .result-section.suggestions li {
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .no-resume-state {
+        text-align: center;
+        padding: 2rem 0;
+    }
+
+    .no-resume-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .no-resume-state h3 {
+        margin: 0 0 0.5rem;
+        color: white;
+    }
+
+    .no-resume-state p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .jobs-content {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-panel {
+            display: none;
+        }
+
+        .filters-panel.open {
+            display: block;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            z-index: 200;
+            border-radius: 0;
+        }
+
+        .filter-toggle {
+            display: block;
+        }
+
+        .details-panel {
+            width: 100%;
+            max-width: 420px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .search-main {
+            flex-direction: column;
+        }
+
+        .quest-header h1 {
+            font-size: 1.75rem;
+        }
+
+        .details-panel {
+            width: 100%;
+        }
+
+        .result-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .result-info {
+            text-align: center;
+        }
+    }
+</style>

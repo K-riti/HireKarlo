@@ -1,113 +1,622 @@
 ﻿@page "/"
 @rendermode InteractiveAuto
 
-<PageTitle>HireKarlo - AI-Powered Career Tools</PageTitle>
+<PageTitle>HireKarlo - Your AI-Powered Career Adventure 🚀</PageTitle>
 
-<div class="dashboard">
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Land Your Dream Job with <span class="gradient-text">AI-Powered</span> Career Tools</h1>
-            <p>Resume optimization, mock interviews, personalized learning paths, and job matching - all powered by AI.</p>
-            <div class="hero-cta">
-                <a href="/login" class="btn btn-primary">Get Started Free</a>
-                <a href="#features" class="btn btn-secondary">Learn More</a>
-            </div>
+<div class="home-page">
+    <!-- 🎮 Animated Hero Section -->
+    <section class="hero-section">
+        <div class="hero-bg">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
         </div>
-        <div class="hero-stats">
-            <div class="stat">
-                <span class="stat-value">10K+</span>
-                <span class="stat-label">Job Seekers</span>
+
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-icon">✨</span>
+                <span>AI-Powered Career Tools</span>
             </div>
-            <div class="stat">
-                <span class="stat-value">85%</span>
-                <span class="stat-label">Interview Success</span>
+
+            <h1 class="hero-title">
+                Level Up Your
+                <span class="gradient-text animated-gradient">Career Journey</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Resume magic, mock interviews, personalized learning quests, and AI job matching. 
+                Your career RPG starts here.
+            </p>
+
+            <div class="hero-actions">
+                <a href="/login" class="btn btn-primary btn-glow">
+                    <span>🎯</span> Start Your Quest
+                </a>
+                <a href="#features" class="btn btn-secondary">
+                    <span>🗺️</span> Explore Features
+                </a>
             </div>
-            <div class="stat">
-                <span class="stat-value">500+</span>
-                <span class="stat-label">Companies</span>
+
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <span class="stat-icon">👥</span>
+                    <div class="stat-details">
+                        <span class="stat-value counter" data-target="10000">10K+</span>
+                        <span class="stat-label">Adventurers</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🏆</span>
+                    <div class="stat-details">
+                        <span class="stat-value">85%</span>
+                        <span class="stat-label">Quest Success</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🏢</span>
+                    <div class="stat-details">
+                        <span class="stat-value">500+</span>
+                        <span class="stat-label">Partner Guilds</span>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <section id="features" class="features">
-        <h2>Everything You Need to Succeed</h2>
+    <!-- 🎴 Feature Cards Section -->
+    <section id="features" class="features-section">
+        <div class="section-header">
+            <span class="section-badge">⚔️ Your Arsenal</span>
+            <h2>Choose Your <span class="gradient-text">Power-Ups</span></h2>
+            <p>Every tool you need to conquer the job market</p>
+        </div>
+
         <div class="feature-grid">
-            <a href="/resumes" class="feature-card">
-                <span class="feature-icon">📄</span>
-                <h3>ATS-Optimized Resumes</h3>
-                <p>Get real-time ATS scores and AI suggestions to beat applicant tracking systems.</p>
+            <a href="/resumes" class="feature-card card-resume">
+                <div class="card-glow"></div>
+                <div class="card-icon">📄</div>
+                <div class="card-content">
+                    <h3>Resume Forge</h3>
+                    <p>Craft ATS-proof resumes with real-time scoring and AI enhancement spells.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">⚡ +40% ATS Score</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Enter →</span>
+                </div>
             </a>
-            <a href="/mock-interview" class="feature-card">
-                <span class="feature-icon">🎤</span>
-                <h3>Mock Interviews</h3>
-                <p>Practice with AI-powered interviews tailored to your target company.</p>
+
+            <a href="/mock-interview" class="feature-card card-interview">
+                <div class="card-glow"></div>
+                <div class="card-icon">🎤</div>
+                <div class="card-content">
+                    <h3>Interview Arena</h3>
+                    <p>Battle-test your skills with AI interviewers from top tech companies.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">🎯 85% Success Rate</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Train →</span>
+                </div>
             </a>
-            <a href="/learning" class="feature-card">
-                <span class="feature-icon">📚</span>
-                <h3>Learning Paths</h3>
-                <p>Personalized study plans based on company interview patterns.</p>
+
+            <a href="/learning" class="feature-card card-learning">
+                <div class="card-glow"></div>
+                <div class="card-icon">📚</div>
+                <div class="card-content">
+                    <h3>Skill Tree</h3>
+                    <p>Unlock personalized learning paths based on real interview patterns.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">📈 Level Up Fast</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Learn →</span>
+                </div>
             </a>
-            <a href="/linkedin" class="feature-card">
-                <span class="feature-icon">💼</span>
-                <h3>LinkedIn Optimizer</h3>
-                <p>Boost your profile visibility with keyword optimization.</p>
+
+            <a href="/linkedin" class="feature-card card-linkedin">
+                <div class="card-glow"></div>
+                <div class="card-icon">💎</div>
+                <div class="card-content">
+                    <h3>Profile Enchanter</h3>
+                    <p>Boost your LinkedIn visibility with keyword optimization magic.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">👀 3x More Views</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Optimize →</span>
+                </div>
             </a>
-            <a href="/jobs" class="feature-card">
-                <span class="feature-icon">🎯</span>
-                <h3>Job Matching</h3>
-                <p>AI matches you with jobs based on skills and experience.</p>
+
+            <a href="/jobs" class="feature-card card-jobs">
+                <div class="card-glow"></div>
+                <div class="card-icon">🎯</div>
+                <div class="card-content">
+                    <h3>Quest Board</h3>
+                    <p>Discover perfectly matched job quests tailored to your skills.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">🤖 AI-Matched</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Browse →</span>
+                </div>
             </a>
-            <a href="/chat" class="feature-card">
-                <span class="feature-icon">🤖</span>
-                <h3>AI Career Coach</h3>
-                <p>Get instant career advice from our AI assistant.</p>
+
+            <a href="/chat" class="feature-card card-chat">
+                <div class="card-glow"></div>
+                <div class="card-icon">🤖</div>
+                <div class="card-content">
+                    <h3>AI Companion</h3>
+                    <p>Your personal career advisor, available 24/7 to guide your journey.</p>
+                    <div class="card-stats">
+                        <span class="mini-stat">💬 Always Ready</span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <span>Chat →</span>
+                </div>
             </a>
+        </div>
+    </section>
+
+    <!-- 🏅 Achievement Teaser -->
+    <section class="achievements-section">
+        <div class="achievements-content">
+            <h2>🏆 Earn Achievements</h2>
+            <p>Complete quests, unlock badges, and track your career progression</p>
+            <div class="achievement-preview">
+                <div class="achievement-badge locked">
+                    <span>🎯</span>
+                    <span class="badge-name">First Apply</span>
+                </div>
+                <div class="achievement-badge locked">
+                    <span>📄</span>
+                    <span class="badge-name">Resume Pro</span>
+                </div>
+                <div class="achievement-badge locked">
+                    <span>🎤</span>
+                    <span class="badge-name">Interview Ace</span>
+                </div>
+                <div class="achievement-badge locked">
+                    <span>🔥</span>
+                    <span class="badge-name">7-Day Streak</span>
+                </div>
+                <div class="achievement-badge locked">
+                    <span>💎</span>
+                    <span class="badge-name">Profile Master</span>
+                </div>
+            </div>
+            <a href="/login" class="btn btn-primary">Start Collecting →</a>
         </div>
     </section>
 </div>
 
 <style>
-    .dashboard { max-width: 1400px; margin: 0 auto; }
+    .home-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        position: relative;
+    }
 
-    .hero { text-align: center; padding: 4rem 2rem; }
-    .hero h1 { font-size: 3rem; margin-bottom: 1rem; line-height: 1.2; color: white; }
-    .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero p { font-size: 1.25rem; color: rgba(255,255,255,0.7); max-width: 600px; margin: 0 auto 2rem; }
-    .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .btn { padding: 0.875rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; display: inline-block; }
-    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4); }
-    .btn-secondary { border: 1px solid rgba(255,255,255,0.2); color: white; background: rgba(255,255,255,0.05); }
-    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
-    .hero-stats { display: flex; justify-content: center; gap: 4rem; margin-top: 4rem; flex-wrap: wrap; }
-    .stat { text-align: center; }
-    .stat-value { display: block; font-size: 2.5rem; font-weight: 700; color: #6366f1; }
-    .stat-label { color: rgba(255,255,255,0.6); }
+    /* ===== HERO SECTION ===== */
+    .hero-section {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
 
-    .features { padding: 4rem 2rem; }
-    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 3rem; color: white; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-    .feature-card { 
-        background: rgba(255,255,255,0.05); 
-        padding: 2rem; 
-        border-radius: 12px; 
-        border: 1px solid rgba(255,255,255,0.1); 
-        transition: all 0.3s; 
-        text-decoration: none;
+    .hero-bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .floating-shape {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.5;
+        animation: float 20s ease-in-out infinite;
+    }
+
+    .shape-1 {
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.2));
+        top: -100px;
+        left: -100px;
+        animation-delay: 0s;
+    }
+
+    .shape-2 {
+        width: 300px;
+        height: 300px;
+        background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(139, 92, 246, 0.2));
+        bottom: -50px;
+        right: -50px;
+        animation-delay: -5s;
+    }
+
+    .shape-3 {
+        width: 200px;
+        height: 200px;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(139, 92, 246, 0.2));
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        animation-delay: -10s;
+    }
+
+    @@keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        25% { transform: translate(20px, -20px) scale(1.1); }
+        50% { transform: translate(-10px, 20px) scale(0.95); }
+        75% { transform: translate(15px, 10px) scale(1.05); }
+    }
+
+    .hero-content {
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1.5rem;
+        animation: pulse 3s ease-in-out infinite;
+    }
+
+    .badge-icon {
+        animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @@keyframes sparkle {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        50% { transform: scale(1.2) rotate(15deg); }
+    }
+
+    .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+
+    .animated-gradient {
         display: block;
+        background-size: 200% auto;
+        animation: gradient-flow 4s ease infinite;
     }
-    .feature-card:hover { 
-        border-color: #6366f1; 
-        transform: translateY(-4px); 
-        background: rgba(99, 102, 241, 0.1);
-    }
-    .feature-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
-    .feature-card h3 { margin-bottom: 0.5rem; color: white; }
-    .feature-card p { color: rgba(255,255,255,0.6); margin: 0; }
 
+    @@keyframes gradient-flow {
+        0%, 100% { background-position: 0% center; }
+        50% { background-position: 100% center; }
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        line-height: 1.7;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 4rem;
+    }
+
+    .btn-glow {
+        box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+        animation: glow-pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+        50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+    }
+
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--primary);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+    }
+
+    .stat-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    /* ===== FEATURES SECTION ===== */
+    .features-section {
+        padding: 4rem 2rem;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(6, 182, 212, 0.15);
+        color: var(--secondary);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 2.5rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-header p {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .feature-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        text-decoration: none;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .feature-card:hover .card-glow {
+        opacity: 1;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.4),
+            0 0 60px rgba(139, 92, 246, 0.15);
+    }
+
+    .card-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        transition: transform 0.3s;
+    }
+
+    .feature-card:hover .card-icon {
+        transform: scale(1.2) rotate(5deg);
+    }
+
+    .card-content h3 {
+        font-size: 1.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-content p {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .card-stats {
+        margin-top: auto;
+    }
+
+    .mini-stat {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background: rgba(139, 92, 246, 0.15);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .card-action {
+        position: absolute;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        opacity: 0;
+        transform: translateX(-10px);
+        transition: all 0.3s;
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .feature-card:hover .card-action {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* Card Color Variations */
+    .card-resume:hover { border-color: rgba(34, 211, 238, 0.4); }
+    .card-resume .mini-stat { background: rgba(34, 211, 238, 0.15); color: #22d3ee; }
+
+    .card-interview:hover { border-color: rgba(244, 114, 182, 0.4); }
+    .card-interview .mini-stat { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
+
+    .card-learning:hover { border-color: rgba(251, 146, 60, 0.4); }
+    .card-learning .mini-stat { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
+
+    .card-linkedin:hover { border-color: rgba(96, 165, 250, 0.4); }
+    .card-linkedin .mini-stat { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+
+    /* ===== ACHIEVEMENTS SECTION ===== */
+    .achievements-section {
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+
+    .achievements-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 3rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.5), rgba(20, 20, 40, 0.7));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+    }
+
+    .achievements-content h2 {
+        font-size: 2rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .achievements-content > p {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+
+    .achievement-preview {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+
+    .achievement-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        min-width: 80px;
+        transition: all 0.3s;
+    }
+
+    .achievement-badge.locked {
+        opacity: 0.6;
+        filter: grayscale(0.5);
+    }
+
+    .achievement-badge:hover {
+        transform: translateY(-4px);
+        opacity: 1;
+        filter: grayscale(0);
+        border-color: var(--primary);
+    }
+
+    .achievement-badge span:first-child {
+        font-size: 2rem;
+    }
+
+    .badge-name {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    /* ===== RESPONSIVE ===== */
     @@media (max-width: 768px) {
-        .hero h1 { font-size: 2rem; }
-        .hero-stats { gap: 2rem; }
-        .stat-value { font-size: 1.75rem; }
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+        }
+
+        .hero-stats {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .achievement-preview {
+            gap: 0.5rem;
+        }
+
+        .achievement-badge {
+            min-width: 60px;
+            padding: 0.75rem;
+        }
     }
 </style>
