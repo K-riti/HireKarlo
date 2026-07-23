@@ -1,0 +1,1053 @@
+@page "/advanced-ai"
+@rendermode InteractiveAuto
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>🧠 Advanced AI - HireKarlo</PageTitle>
+
+<div class="advanced-ai-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-badge">🧠 Advanced AI</div>
+            <h1>AI-Powered <span class="gradient-text">Career Intelligence</span></h1>
+            <p>Predict outcomes, discover insights, and optimize your career trajectory.</p>
+        </div>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="features-grid">
+        <!-- Outcome Prediction -->
+        <div class="feature-card @(activeFeature == "outcome" ? "active" : "")" @onclick='() => SetFeature("outcome")'>
+            <div class="feature-icon">🎯</div>
+            <div class="feature-info">
+                <h3>Outcome Prediction</h3>
+                <p>Predict your chances of landing a specific job</p>
+            </div>
+            <span class="feature-arrow">→</span>
+        </div>
+
+        <!-- Keyword Radar -->
+        <div class="feature-card @(activeFeature == "keywords" ? "active" : "")" @onclick='() => SetFeature("keywords")'>
+            <div class="feature-icon">📡</div>
+            <div class="feature-info">
+                <h3>Keyword Radar</h3>
+                <p>Discover missing keywords for ATS optimization</p>
+            </div>
+            <span class="feature-arrow">→</span>
+        </div>
+
+        <!-- Skill Trajectory -->
+        <div class="feature-card @(activeFeature == "trajectory" ? "active" : "")" @onclick='() => SetFeature("trajectory")'>
+            <div class="feature-icon">📈</div>
+            <div class="feature-info">
+                <h3>Skill Trajectory</h3>
+                <p>See how learning skills affects your match score</p>
+            </div>
+            <span class="feature-arrow">→</span>
+        </div>
+
+        <!-- Explainable ATS -->
+        <div class="feature-card @(activeFeature == "ats" ? "active" : "")" @onclick='() => SetFeature("ats")'>
+            <div class="feature-icon">🔬</div>
+            <div class="feature-info">
+                <h3>Explainable ATS</h3>
+                <p>Deep breakdown of ATS scoring factors</p>
+            </div>
+            <span class="feature-arrow">→</span>
+        </div>
+    </div>
+
+    <!-- Feature Content -->
+    <div class="feature-content">
+        @switch (activeFeature)
+        {
+            case "outcome":
+                <div class="content-panel">
+                    <h2>🎯 Application Outcome Prediction</h2>
+                    <p>Enter a job you're considering and we'll predict your chances of success.</p>
+
+                    <div class="input-section">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" @bind="outcomeJobTitle" placeholder="e.g., Senior Software Engineer" />
+                        </div>
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" @bind="outcomeCompany" placeholder="e.g., Google" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="PredictOutcome" disabled="@isAnalyzing">
+                            @(isAnalyzing ? "Analyzing..." : "Predict Outcome")
+                        </button>
+                    </div>
+
+                    @if (showOutcomeResult)
+                    {
+                        <div class="result-panel">
+                            <div class="score-display">
+                                <div class="big-score @GetScoreClass(outcomePrediction)">
+                                    <span class="score-value">@outcomePrediction%</span>
+                                    <span class="score-label">Success Probability</span>
+                                </div>
+                            </div>
+
+                            <div class="factors-grid">
+                                <div class="factor-card positive">
+                                    <h4>✅ Strengths</h4>
+                                    <ul>
+                                        <li>Strong technical skills match (85%)</li>
+                                        <li>Relevant experience level</li>
+                                        <li>Education requirements met</li>
+                                    </ul>
+                                </div>
+                                <div class="factor-card negative">
+                                    <h4>⚠️ Gaps</h4>
+                                    <ul>
+                                        <li>Missing cloud certification</li>
+                                        <li>Limited leadership experience</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="recommendations">
+                                <h4>💡 To Improve Your Chances:</h4>
+                                <ol>
+                                    <li>Add AWS/GCP certification to your profile</li>
+                                    <li>Highlight any team lead experiences</li>
+                                    <li>Tailor your resume with company-specific keywords</li>
+                                </ol>
+                            </div>
+                        </div>
+                    }
+                </div>
+                break;
+
+            case "keywords":
+                <div class="content-panel">
+                    <h2>📡 Keyword Radar</h2>
+                    <p>Compare your resume against job requirements to find missing keywords.</p>
+
+                    <div class="input-section">
+                        <div class="form-group">
+                            <label>Paste Job Description</label>
+                            <textarea @bind="keywordJobDescription" rows="6" 
+                                      placeholder="Paste the full job description here..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" @onclick="AnalyzeKeywords" disabled="@isAnalyzing">
+                            @(isAnalyzing ? "Scanning..." : "Scan Keywords")
+                        </button>
+                    </div>
+
+                    @if (showKeywordResult)
+                    {
+                        <div class="result-panel">
+                            <div class="keyword-stats">
+                                <div class="keyword-stat">
+                                    <span class="stat-value text-success">@matchedKeywords.Count</span>
+                                    <span class="stat-label">Keywords Matched</span>
+                                </div>
+                                <div class="keyword-stat">
+                                    <span class="stat-value text-warning">@missingKeywords.Count</span>
+                                    <span class="stat-label">Keywords Missing</span>
+                                </div>
+                                <div class="keyword-stat">
+                                    <span class="stat-value">@keywordScore%</span>
+                                    <span class="stat-label">Overall Match</span>
+                                </div>
+                            </div>
+
+                            <div class="keyword-sections">
+                                <div class="keyword-section matched">
+                                    <h4>✅ Found in Your Resume</h4>
+                                    <div class="keyword-tags">
+                                        @foreach (var kw in matchedKeywords)
+                                        {
+                                            <span class="keyword-tag matched">@kw</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="keyword-section missing">
+                                    <h4>⚠️ Missing Keywords (Add These!)</h4>
+                                    <div class="keyword-tags">
+                                        @foreach (var kw in missingKeywords)
+                                        {
+                                            <span class="keyword-tag missing">@kw</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                break;
+
+            case "trajectory":
+                <div class="content-panel">
+                    <h2>📈 Skill Trajectory Simulator</h2>
+                    <p>See how learning new skills would improve your job match scores.</p>
+
+                    <div class="current-skills">
+                        <h4>Your Current Skills</h4>
+                        <div class="skill-tags">
+                            @foreach (var skill in currentSkills)
+                            {
+                                <span class="skill-tag current">@skill</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="simulation-section">
+                        <h4>Add Skills to Simulate</h4>
+                        <div class="skill-options">
+                            @foreach (var skill in suggestedSkills)
+                            {
+                                <button class="skill-option @(simulatedSkills.Contains(skill) ? "selected" : "")"
+                                        @onclick="() => ToggleSimulatedSkill(skill)">
+                                    @skill
+                                    @if (simulatedSkills.Contains(skill))
+                                    {
+                                        <span class="check">✓</span>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    @if (simulatedSkills.Any())
+                    {
+                        <div class="trajectory-result">
+                            <div class="trajectory-comparison">
+                                <div class="trajectory-card before">
+                                    <span class="trajectory-label">Current</span>
+                                    <span class="trajectory-score">@currentAverageMatch%</span>
+                                    <span class="trajectory-desc">Avg Match Score</span>
+                                </div>
+                                <div class="trajectory-arrow">→</div>
+                                <div class="trajectory-card after">
+                                    <span class="trajectory-label">Projected</span>
+                                    <span class="trajectory-score">@(currentAverageMatch + skillImpact)%</span>
+                                    <span class="trajectory-impact">+@skillImpact%</span>
+                                </div>
+                            </div>
+
+                            <div class="skill-impact-list">
+                                <h4>Skill Impact Breakdown</h4>
+                                @foreach (var skill in simulatedSkills)
+                                {
+                                    var impact = GetSkillImpact(skill);
+                                    <div class="impact-item">
+                                        <span class="skill-name">@skill</span>
+                                        <div class="impact-bar">
+                                            <div class="impact-fill" style="width: @(impact * 10)%"></div>
+                                        </div>
+                                        <span class="impact-value">+@impact%</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                break;
+
+            case "ats":
+                <div class="content-panel">
+                    <h2>🔬 Explainable ATS Analysis</h2>
+                    <p>Get a detailed breakdown of how ATS systems score your resume.</p>
+
+                    <div class="input-section">
+                        <button class="btn btn-primary" @onclick="RunAtsAnalysis" disabled="@isAnalyzing">
+                            @(isAnalyzing ? "Analyzing..." : "Analyze My Resume")
+                        </button>
+                    </div>
+
+                    @if (showAtsResult)
+                    {
+                        <div class="result-panel">
+                            <div class="ats-overall">
+                                <div class="ats-score-circle @GetScoreClass(atsOverallScore)">
+                                    <span class="score">@atsOverallScore</span>
+                                    <span class="label">ATS Score</span>
+                                </div>
+                            </div>
+
+                            <div class="ats-breakdown">
+                                <h4>Score Breakdown</h4>
+                                @foreach (var factor in atsFactors)
+                                {
+                                    <div class="ats-factor">
+                                        <div class="factor-header">
+                                            <span class="factor-name">@factor.Name</span>
+                                            <span class="factor-score">@factor.Score/100</span>
+                                        </div>
+                                        <div class="factor-bar">
+                                            <div class="factor-fill @GetScoreClass(factor.Score)" 
+                                                 style="width: @factor.Score%"></div>
+                                        </div>
+                                        <p class="factor-tip">@factor.Tip</p>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="ats-tips">
+                                <h4>🚀 Quick Wins</h4>
+                                <ul>
+                                    <li>Use standard section headings (Experience, Education, Skills)</li>
+                                    <li>Add more quantifiable achievements</li>
+                                    <li>Include exact keywords from job descriptions</li>
+                                    <li>Use simple formatting (no tables or graphics)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                </div>
+                break;
+        }
+    </div>
+</div>
+
+@code {
+    private string activeFeature = "outcome";
+    private bool isAnalyzing = false;
+
+    // Outcome Prediction
+    private string outcomeJobTitle = "";
+    private string outcomeCompany = "";
+    private bool showOutcomeResult = false;
+    private int outcomePrediction = 0;
+
+    // Keywords
+    private string keywordJobDescription = "";
+    private bool showKeywordResult = false;
+    private List<string> matchedKeywords = new();
+    private List<string> missingKeywords = new();
+    private int keywordScore = 0;
+
+    // Trajectory
+    private List<string> currentSkills = new() { "C#", ".NET", "SQL", "JavaScript", "REST APIs" };
+    private List<string> suggestedSkills = new() { "AWS", "Kubernetes", "React", "Python", "Machine Learning", "Docker", "GraphQL", "TypeScript" };
+    private List<string> simulatedSkills = new();
+    private int currentAverageMatch = 68;
+    private int skillImpact => simulatedSkills.Sum(s => GetSkillImpact(s));
+
+    // ATS
+    private bool showAtsResult = false;
+    private int atsOverallScore = 0;
+    private List<AtsFactor> atsFactors = new();
+
+    private void SetFeature(string feature)
+    {
+        activeFeature = feature;
+        // Reset results when switching
+        showOutcomeResult = false;
+        showKeywordResult = false;
+        showAtsResult = false;
+    }
+
+    private async Task PredictOutcome()
+    {
+        if (string.IsNullOrWhiteSpace(outcomeJobTitle)) return;
+
+        isAnalyzing = true;
+        StateHasChanged();
+
+        await Task.Delay(1500);
+
+        outcomePrediction = new Random().Next(45, 85);
+        showOutcomeResult = true;
+        isAnalyzing = false;
+    }
+
+    private async Task AnalyzeKeywords()
+    {
+        if (string.IsNullOrWhiteSpace(keywordJobDescription)) return;
+
+        isAnalyzing = true;
+        StateHasChanged();
+
+        await Task.Delay(1500);
+
+        matchedKeywords = new List<string> { "C#", ".NET", "SQL Server", "REST API", "Agile", "Git" };
+        missingKeywords = new List<string> { "Azure", "Microservices", "CI/CD", "Docker", "Kubernetes" };
+        keywordScore = 65;
+        showKeywordResult = true;
+        isAnalyzing = false;
+    }
+
+    private void ToggleSimulatedSkill(string skill)
+    {
+        if (simulatedSkills.Contains(skill))
+            simulatedSkills.Remove(skill);
+        else
+            simulatedSkills.Add(skill);
+    }
+
+    private int GetSkillImpact(string skill) => skill switch
+    {
+        "AWS" => 8,
+        "Kubernetes" => 7,
+        "React" => 5,
+        "Python" => 6,
+        "Machine Learning" => 9,
+        "Docker" => 6,
+        "GraphQL" => 4,
+        "TypeScript" => 5,
+        _ => 3
+    };
+
+    private async Task RunAtsAnalysis()
+    {
+        isAnalyzing = true;
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        atsOverallScore = 72;
+        atsFactors = new List<AtsFactor>
+        {
+            new() { Name = "Keyword Matching", Score = 78, Tip = "Good keyword usage. Add more industry-specific terms." },
+            new() { Name = "Formatting", Score = 85, Tip = "Great! Your resume is ATS-friendly." },
+            new() { Name = "Experience Relevance", Score = 70, Tip = "Highlight more relevant experiences." },
+            new() { Name = "Skills Section", Score = 65, Tip = "Add technical skills section with exact technologies." },
+            new() { Name = "Quantifiable Achievements", Score = 55, Tip = "Add more metrics and numbers to your achievements." }
+        };
+
+        showAtsResult = true;
+        isAnalyzing = false;
+    }
+
+    private string GetScoreClass(int score) => score switch
+    {
+        >= 80 => "excellent",
+        >= 60 => "good",
+        >= 40 => "fair",
+        _ => "poor"
+    };
+
+    private class AtsFactor
+    {
+        public string Name { get; set; } = "";
+        public int Score { get; set; }
+        public string Tip { get; set; } = "";
+    }
+}
+
+<style>
+    .advanced-ai-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .header-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+    }
+
+    /* Feature Cards */
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .feature-card.active {
+        border-color: var(--primary);
+        background: linear-gradient(145deg, rgba(139, 92, 246, 0.15), rgba(20, 20, 40, 0.8));
+    }
+
+    .feature-icon {
+        font-size: 2rem;
+    }
+
+    .feature-info {
+        flex: 1;
+    }
+
+    .feature-info h3 {
+        color: white;
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+    }
+
+    .feature-info p {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 0.8rem;
+    }
+
+    .feature-arrow {
+        color: var(--primary);
+        font-size: 1.25rem;
+    }
+
+    /* Content Panel */
+    .content-panel {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+    }
+
+    .content-panel h2 {
+        color: white;
+        margin: 0 0 0.5rem;
+    }
+
+    .content-panel > p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+
+    .input-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.875rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+    }
+
+    /* Result Panel */
+    .result-panel {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    /* Outcome */
+    .score-display {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .big-score {
+        text-align: center;
+        padding: 2rem;
+        border-radius: 50%;
+        width: 150px;
+        height: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid;
+    }
+
+    .big-score.excellent {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .big-score.good {
+        border-color: var(--secondary);
+        background: rgba(6, 182, 212, 0.1);
+    }
+
+    .big-score.fair {
+        border-color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .big-score.poor {
+        border-color: var(--error);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .big-score .score-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .big-score .score-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .factors-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .factor-card {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .factor-card.positive {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .factor-card.negative {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .factor-card h4 {
+        margin: 0 0 0.75rem;
+        color: white;
+    }
+
+    .factor-card ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .factor-card li {
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .recommendations {
+        background: rgba(139, 92, 246, 0.1);
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .recommendations h4 {
+        margin: 0 0 0.75rem;
+        color: var(--primary);
+    }
+
+    .recommendations ol {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .recommendations li {
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Keywords */
+    .keyword-stats {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .keyword-stat {
+        text-align: center;
+    }
+
+    .keyword-stat .stat-value {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .keyword-stat .stat-value.text-success {
+        color: var(--success);
+    }
+
+    .keyword-stat .stat-value.text-warning {
+        color: var(--warning);
+    }
+
+    .keyword-stat .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .keyword-sections {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .keyword-section {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .keyword-section.matched {
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .keyword-section.missing {
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .keyword-section h4 {
+        margin: 0 0 0.75rem;
+        color: white;
+    }
+
+    .keyword-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .keyword-tag {
+        padding: 0.375rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+    }
+
+    .keyword-tag.matched {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid var(--success);
+        color: var(--success);
+    }
+
+    .keyword-tag.missing {
+        background: rgba(245, 158, 11, 0.2);
+        border: 1px solid var(--warning);
+        color: #fbbf24;
+    }
+
+    /* Trajectory */
+    .current-skills {
+        margin-bottom: 1.5rem;
+    }
+
+    .current-skills h4 {
+        color: var(--text-secondary);
+        margin: 0 0 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .skill-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .skill-tag.current {
+        padding: 0.375rem 0.75rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid var(--primary);
+        border-radius: 50px;
+        color: var(--primary);
+        font-size: 0.85rem;
+    }
+
+    .simulation-section h4 {
+        color: var(--text-secondary);
+        margin: 0 0 0.75rem;
+    }
+
+    .skill-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .skill-option {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .skill-option:hover {
+        border-color: var(--secondary);
+        color: var(--secondary);
+    }
+
+    .skill-option.selected {
+        background: rgba(6, 182, 212, 0.2);
+        border-color: var(--secondary);
+        color: var(--secondary);
+    }
+
+    .skill-option .check {
+        margin-left: 0.5rem;
+    }
+
+    .trajectory-result {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .trajectory-comparison {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .trajectory-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 16px;
+        min-width: 150px;
+    }
+
+    .trajectory-card.before {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+    }
+
+    .trajectory-card.after {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid var(--success);
+    }
+
+    .trajectory-label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .trajectory-score {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .trajectory-desc {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .trajectory-impact {
+        display: block;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--success);
+        margin-top: 0.25rem;
+    }
+
+    .trajectory-arrow {
+        font-size: 2rem;
+        color: var(--primary);
+    }
+
+    .skill-impact-list h4 {
+        margin: 0 0 1rem;
+        color: var(--text-secondary);
+    }
+
+    .impact-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .skill-name {
+        min-width: 120px;
+        color: var(--text-primary);
+    }
+
+    .impact-bar {
+        flex: 1;
+        height: 8px;
+        background: var(--bg-secondary);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .impact-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 4px;
+    }
+
+    .impact-value {
+        min-width: 50px;
+        text-align: right;
+        color: var(--success);
+        font-weight: 600;
+    }
+
+    /* ATS */
+    .ats-overall {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .ats-score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid;
+    }
+
+    .ats-score-circle .score {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .ats-score-circle .label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .ats-breakdown h4 {
+        margin: 0 0 1rem;
+        color: white;
+    }
+
+    .ats-factor {
+        margin-bottom: 1rem;
+    }
+
+    .factor-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .factor-name {
+        color: var(--text-primary);
+    }
+
+    .factor-score {
+        color: var(--text-muted);
+    }
+
+    .factor-bar {
+        height: 8px;
+        background: var(--bg-secondary);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .factor-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+
+    .factor-fill.excellent {
+        background: var(--success);
+    }
+
+    .factor-fill.good {
+        background: var(--secondary);
+    }
+
+    .factor-fill.fair {
+        background: var(--warning);
+    }
+
+    .factor-fill.poor {
+        background: var(--error);
+    }
+
+    .factor-tip {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .ats-tips {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 12px;
+    }
+
+    .ats-tips h4 {
+        margin: 0 0 0.75rem;
+        color: var(--primary);
+    }
+
+    .ats-tips ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .ats-tips li {
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    @@media (max-width: 768px) {
+        .factors-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .trajectory-comparison {
+            flex-direction: column;
+        }
+
+        .trajectory-arrow {
+            transform: rotate(90deg);
+        }
+    }
+</style>

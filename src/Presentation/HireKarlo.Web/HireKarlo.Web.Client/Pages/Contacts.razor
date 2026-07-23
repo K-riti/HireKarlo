@@ -1,0 +1,800 @@
+@page "/contacts"
+@rendermode InteractiveAuto
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>👥 Contacts & Referrals - HireKarlo</PageTitle>
+
+<div class="contacts-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-badge">👥 Network</div>
+            <h1>Manage Your <span class="gradient-text">Connections</span></h1>
+            <p>Track contacts at your dream companies and get AI-drafted referral messages.</p>
+        </div>
+        <button class="btn btn-primary" @onclick="() => showAddModal = true">
+            + Add Contact
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <div class="filter-chips">
+            <button class="filter-chip @(filter == "all" ? "active" : "")" @onclick='() => filter = "all"'>
+                All (@contacts.Count)
+            </button>
+            <button class="filter-chip @(filter == "pending" ? "active" : "")" @onclick='() => filter = "pending"'>
+                ⏳ Pending (@contacts.Count(c => c.Status == "Pending"))
+            </button>
+            <button class="filter-chip @(filter == "connected" ? "active" : "")" @onclick='() => filter = "connected"'>
+                ✅ Connected (@contacts.Count(c => c.Status == "Connected"))
+            </button>
+            <button class="filter-chip @(filter == "referred" ? "active" : "")" @onclick='() => filter = "referred"'>
+                🎯 Referred (@contacts.Count(c => c.Status == "Referred"))
+            </button>
+        </div>
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" @bind="searchQuery" @bind:event="oninput" placeholder="Search contacts..." />
+        </div>
+    </div>
+
+    <!-- Contacts List -->
+    <div class="contacts-section">
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading contacts...</p>
+            </div>
+        }
+        else if (filteredContacts.Any())
+        {
+            <div class="contacts-grid">
+                @foreach (var contact in filteredContacts)
+                {
+                    <div class="contact-card">
+                        <div class="card-header">
+                            <div class="avatar">
+                                @if (!string.IsNullOrEmpty(contact.AvatarUrl))
+                                {
+                                    <img src="@contact.AvatarUrl" alt="@contact.Name" />
+                                }
+                                else
+                                {
+                                    <span>@contact.Name[0]</span>
+                                }
+                            </div>
+                            <div class="contact-info">
+                                <h3>@contact.Name</h3>
+                                <p class="role">@contact.Role</p>
+                                <p class="company">
+                                    <span class="company-badge">🏢 @contact.Company</span>
+                                </p>
+                            </div>
+                            <div class="status-badge @contact.Status.ToLower()">
+                                @GetStatusIcon(contact.Status) @contact.Status
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(contact.Notes))
+                        {
+                            <div class="contact-notes">
+                                <p>@contact.Notes</p>
+                            </div>
+                        }
+
+                        <div class="contact-meta">
+                            <span title="LinkedIn">
+                                @if (!string.IsNullOrEmpty(contact.LinkedInUrl))
+                                {
+                                    <a href="@contact.LinkedInUrl" target="_blank">🔗 LinkedIn</a>
+                                }
+                            </span>
+                            <span title="Email">
+                                @if (!string.IsNullOrEmpty(contact.Email))
+                                {
+                                    <a href="mailto:@contact.Email">📧 Email</a>
+                                }
+                            </span>
+                            <span title="Last Contact">
+                                📅 @GetTimeAgo(contact.LastContactDate)
+                            </span>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="btn btn-primary btn-sm" @onclick="() => GenerateMessage(contact)">
+                                ✨ AI Draft Message
+                            </button>
+                            <button class="btn btn-secondary btn-sm" @onclick="() => UpdateStatus(contact)">
+                                📝 Update Status
+                            </button>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => LogFollowUp(contact)">
+                                📞 Log Follow-up
+                            </button>
+                        </div>
+
+                        @if (contact.ShowDraftMessage && !string.IsNullOrEmpty(contact.DraftMessage))
+                        {
+                            <div class="draft-message">
+                                <h4>✨ AI-Generated Message</h4>
+                                <div class="message-content">
+                                    <p>@contact.DraftMessage</p>
+                                </div>
+                                <div class="message-actions">
+                                    <button class="btn btn-primary btn-sm" @onclick="() => CopyMessage(contact)">
+                                        📋 Copy
+                                    </button>
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => RegenerateMessage(contact)">
+                                        🔄 Regenerate
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">👥</div>
+                <h3>No Contacts Yet</h3>
+                <p>Add contacts at your dream companies to track referrals and networking.</p>
+                <button class="btn btn-primary" @onclick="() => showAddModal = true">
+                    + Add Your First Contact
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Add Contact Modal -->
+@if (showAddModal)
+{
+    <div class="modal-overlay" @onclick="() => showAddModal = false">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Add New Contact</h2>
+                <button class="close-btn" @onclick="() => showAddModal = false">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" @bind="newContact.Name" placeholder="John Smith" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Company *</label>
+                        <input type="text" @bind="newContact.Company" placeholder="Google" />
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" @bind="newContact.Role" placeholder="Senior Engineer" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" @bind="newContact.Email" placeholder="john@company.com" />
+                    </div>
+                    <div class="form-group">
+                        <label>LinkedIn URL</label>
+                        <input type="url" @bind="newContact.LinkedInUrl" placeholder="https://linkedin.com/in/..." />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea @bind="newContact.Notes" placeholder="How do you know them? Any context for reaching out..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select @bind="newContact.Status">
+                        <option value="Pending">Pending Outreach</option>
+                        <option value="Connected">Connected</option>
+                        <option value="Referred">Referred</option>
+                        <option value="Interviewing">Interviewing</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="() => showAddModal = false">Cancel</button>
+                <button class="btn btn-primary" @onclick="SaveContact" 
+                        disabled="@(string.IsNullOrWhiteSpace(newContact.Name) || string.IsNullOrWhiteSpace(newContact.Company))">
+                    Add Contact
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ContactDto> contacts = new();
+    private string filter = "all";
+    private string searchQuery = "";
+    private bool isLoading = true;
+    private bool showAddModal = false;
+    private ContactDto newContact = new();
+
+    private List<ContactDto> filteredContacts => contacts
+        .Where(c => filter == "all" || c.Status.Equals(filter, StringComparison.OrdinalIgnoreCase))
+        .Where(c => string.IsNullOrEmpty(searchQuery) || 
+                    c.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    c.Company.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(c => c.LastContactDate)
+        .ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadContacts();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadContacts()
+    {
+        isLoading = true;
+        await Task.Delay(500);
+
+        contacts = new List<ContactDto>
+        {
+            new() { 
+                Id = Guid.NewGuid(), 
+                Name = "Sarah Chen", 
+                Company = "Google", 
+                Role = "Senior Software Engineer",
+                Email = "sarah.c@google.com",
+                LinkedInUrl = "https://linkedin.com/in/sarahchen",
+                Status = "Connected",
+                Notes = "Met at a tech meetup. Open to referring.",
+                LastContactDate = DateTime.Now.AddDays(-3)
+            },
+            new() { 
+                Id = Guid.NewGuid(), 
+                Name = "Mike Johnson", 
+                Company = "Microsoft", 
+                Role = "Engineering Manager",
+                Email = "mike.j@microsoft.com",
+                Status = "Referred",
+                Notes = "College alumni. Referred me to his team.",
+                LastContactDate = DateTime.Now.AddDays(-7)
+            },
+            new() { 
+                Id = Guid.NewGuid(), 
+                Name = "Lisa Wang", 
+                Company = "OpenAI", 
+                Role = "Product Manager",
+                LinkedInUrl = "https://linkedin.com/in/lisawang",
+                Status = "Pending",
+                Notes = "Follow her on Twitter, seems approachable.",
+                LastContactDate = DateTime.Now.AddDays(-14)
+            }
+        };
+
+        isLoading = false;
+    }
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        "Pending" => "⏳",
+        "Connected" => "✅",
+        "Referred" => "🎯",
+        "Interviewing" => "🎤",
+        _ => "📌"
+    };
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var diff = DateTime.Now - date;
+        if (diff.TotalDays < 1) return "Today";
+        if (diff.TotalDays < 2) return "Yesterday";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
+        if (diff.TotalDays < 30) return $"{(int)(diff.TotalDays / 7)}w ago";
+        return $"{(int)(diff.TotalDays / 30)}mo ago";
+    }
+
+    private async Task GenerateMessage(ContactDto contact)
+    {
+        contact.ShowDraftMessage = true;
+        contact.DraftMessage = "Generating...";
+        StateHasChanged();
+
+        await Task.Delay(1000);
+
+        contact.DraftMessage = $@"Hi {contact.Name.Split(' ')[0]},
+
+I hope this message finds you well! I came across your profile and was impressed by your work at {contact.Company}.
+
+I'm currently exploring opportunities in the tech industry and would love to learn more about your experience at {contact.Company}. I noticed you're working as a {contact.Role}, and I'd really appreciate any insights you might have about the team culture and growth opportunities there.
+
+Would you be open to a brief 15-minute chat sometime this week? I'd be happy to work around your schedule.
+
+Thank you so much for considering!
+
+Best regards";
+    }
+
+    private async Task RegenerateMessage(ContactDto contact)
+    {
+        contact.DraftMessage = "Regenerating...";
+        StateHasChanged();
+
+        await Task.Delay(1000);
+
+        contact.DraftMessage = $@"Hey {contact.Name.Split(' ')[0]}!
+
+I've been following your journey at {contact.Company} and I'm really inspired by the work you're doing there.
+
+I'm passionate about [your field] and I'm actively looking for my next opportunity. I noticed {contact.Company} is doing some exciting things, and your perspective as a {contact.Role} would be incredibly valuable.
+
+Would you have 10-15 minutes for a quick coffee chat (virtual is great too!)? I'd love to hear about your experience and any advice you might have.
+
+Thanks so much!
+
+Best,
+[Your Name]";
+    }
+
+    private void CopyMessage(ContactDto contact)
+    {
+        // Would use JavaScript interop to copy to clipboard
+    }
+
+    private void UpdateStatus(ContactDto contact)
+    {
+        // Would show status update modal
+    }
+
+    private void LogFollowUp(ContactDto contact)
+    {
+        contact.LastContactDate = DateTime.Now;
+    }
+
+    private void SaveContact()
+    {
+        if (string.IsNullOrWhiteSpace(newContact.Name) || string.IsNullOrWhiteSpace(newContact.Company)) return;
+
+        newContact.Id = Guid.NewGuid();
+        newContact.LastContactDate = DateTime.Now;
+        contacts.Add(newContact);
+
+        newContact = new ContactDto();
+        showAddModal = false;
+    }
+
+    private class ContactDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Company { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string? Email { get; set; }
+        public string? LinkedInUrl { get; set; }
+        public string? AvatarUrl { get; set; }
+        public string Status { get; set; } = "Pending";
+        public string? Notes { get; set; }
+        public DateTime LastContactDate { get; set; }
+        public bool ShowDraftMessage { get; set; }
+        public string? DraftMessage { get; set; }
+    }
+}
+
+<style>
+    .contacts-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .header-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .header-content h1 {
+        font-size: 2.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .header-content p {
+        color: var(--text-secondary);
+    }
+
+    /* Filters */
+    .filters-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .filter-chips {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-chip:hover, .filter-chip.active {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: var(--primary);
+        color: var(--text-primary);
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+
+    .search-box input {
+        background: none;
+        border: none;
+        color: white;
+        outline: none;
+        width: 200px;
+    }
+
+    /* Contacts Grid */
+    .contacts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .contact-card {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s;
+    }
+
+    .contact-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+    }
+
+    .card-header {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: white;
+        overflow: hidden;
+    }
+
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .contact-info {
+        flex: 1;
+    }
+
+    .contact-info h3 {
+        color: white;
+        margin: 0 0 0.25rem;
+    }
+
+    .contact-info .role {
+        color: var(--text-secondary);
+        margin: 0 0 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .company-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: rgba(139, 92, 246, 0.15);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        color: var(--primary);
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        height: fit-content;
+    }
+
+    .status-badge.pending {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+    }
+
+    .status-badge.connected {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+
+    .status-badge.referred {
+        background: rgba(139, 92, 246, 0.2);
+        color: #a78bfa;
+    }
+
+    .status-badge.interviewing {
+        background: rgba(6, 182, 212, 0.2);
+        color: #22d3ee;
+    }
+
+    .contact-notes {
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .contact-notes p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+
+    .contact-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .contact-meta span {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .contact-meta a {
+        color: var(--secondary);
+        text-decoration: none;
+    }
+
+    .contact-meta a:hover {
+        text-decoration: underline;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Draft Message */
+    .draft-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 12px;
+    }
+
+    .draft-message h4 {
+        margin: 0 0 0.75rem;
+        color: var(--primary);
+        font-size: 0.9rem;
+    }
+
+    .message-content {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+    }
+
+    .message-content p {
+        margin: 0;
+        white-space: pre-line;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .message-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+
+    .modal {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.95), rgba(20, 20, 40, 0.98));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        color: white;
+    }
+
+    .close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .form-group textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Loading */
+    .loading-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .contacts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

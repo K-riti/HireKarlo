@@ -1,0 +1,915 @@
+@page "/roadmap"
+@rendermode InteractiveAuto
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>🗺️ Career Roadmap - HireKarlo</PageTitle>
+
+<div class="roadmap-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-badge">🗺️ Career Roadmap</div>
+            <h1>Your 6-Month <span class="gradient-text">Success Plan</span></h1>
+            <p>AI-generated personalized roadmap to help you reach your career goals.</p>
+        </div>
+    </div>
+
+    @if (!hasRoadmap)
+    {
+        <!-- Generate Roadmap Form -->
+        <div class="generate-section">
+            <div class="generate-card">
+                <div class="card-icon">🎯</div>
+                <h2>Create Your Roadmap</h2>
+                <p>Tell us about your career goals and we'll generate a personalized 6-month plan.</p>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>Current Role</label>
+                        <input type="text" @bind="currentRole" placeholder="e.g., Junior Software Engineer" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Role</label>
+                        <input type="text" @bind="targetRole" placeholder="e.g., Senior Software Engineer at Google" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Company (optional)</label>
+                        <input type="text" @bind="targetCompany" placeholder="e.g., Google, Microsoft, Amazon" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Your Current Skills</label>
+                        <div class="skills-input">
+                            <input type="text" @bind="skillInput" @bind:event="oninput" @onkeydown="HandleSkillKeyDown"
+                                   placeholder="Add skills (press Enter)" />
+                        </div>
+                        <div class="skill-tags">
+                            @foreach (var skill in currentSkills)
+                            {
+                                <span class="skill-tag">
+                                    @skill
+                                    <button @onclick="() => currentSkills.Remove(skill)">×</button>
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Available Hours Per Week</label>
+                        <div class="hours-slider">
+                            <input type="range" min="5" max="40" @bind="hoursPerWeek" />
+                            <span class="hours-value">@hoursPerWeek hours/week</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-large" @onclick="GenerateRoadmap" disabled="@isGenerating">
+                        @if (isGenerating)
+                        {
+                            <span class="spinner"></span>
+                            <span>Generating Your Roadmap...</span>
+                        }
+                        else
+                        {
+                            <span>✨ Generate My Roadmap</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Roadmap Display -->
+        <div class="roadmap-overview">
+            <div class="overview-card">
+                <div class="overview-header">
+                    <div>
+                        <h2>@currentRole → @targetRole</h2>
+                        <p>@targetCompany</p>
+                    </div>
+                    <button class="btn btn-ghost" @onclick="ResetRoadmap">
+                        🔄 Regenerate
+                    </button>
+                </div>
+
+                <div class="progress-overview">
+                    <div class="progress-stats">
+                        <div class="stat">
+                            <span class="stat-value">@completedMilestones/@roadmapMilestones.Count</span>
+                            <span class="stat-label">Milestones</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">@completedTasks/@totalTasks</span>
+                            <span class="stat-label">Tasks Done</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">@overallProgress%</span>
+                            <span class="stat-label">Progress</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: @overallProgress%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <div class="timeline">
+                @foreach (var milestone in roadmapMilestones)
+                {
+                    var milestoneIndex = roadmapMilestones.IndexOf(milestone);
+                    var isActive = milestoneIndex == activeMilestoneIndex;
+                    var isCompleted = milestone.Tasks.All(t => t.IsCompleted);
+                    var progress = milestone.Tasks.Count > 0 
+                        ? (int)((double)milestone.Tasks.Count(t => t.IsCompleted) / milestone.Tasks.Count * 100) 
+                        : 0;
+
+                    <div class="milestone @(isActive ? "active" : "") @(isCompleted ? "completed" : "")">
+                        <div class="milestone-header" @onclick="() => ToggleMilestone(milestoneIndex)">
+                            <div class="milestone-marker">
+                                @if (isCompleted)
+                                {
+                                    <span>✅</span>
+                                }
+                                else
+                                {
+                                    <span>@(milestoneIndex + 1)</span>
+                                }
+                            </div>
+                            <div class="milestone-info">
+                                <div class="milestone-meta">
+                                    <span class="month-badge">Month @milestone.Month</span>
+                                    <span class="progress-badge">@progress% complete</span>
+                                </div>
+                                <h3>@milestone.Title</h3>
+                                <p>@milestone.Description</p>
+                            </div>
+                            <div class="expand-icon">
+                                @(isActive ? "▼" : "▶")
+                            </div>
+                        </div>
+
+                        @if (isActive)
+                        {
+                            <div class="milestone-content">
+                                <div class="tasks-list">
+                                    @foreach (var task in milestone.Tasks)
+                                    {
+                                        <div class="task-item @(task.IsCompleted ? "completed" : "")">
+                                            <label class="task-checkbox">
+                                                <input type="checkbox" checked="@task.IsCompleted" 
+                                                       @onchange="() => ToggleTask(task)" />
+                                                <span class="checkmark"></span>
+                                            </label>
+                                            <div class="task-info">
+                                                <span class="task-title">@task.Title</span>
+                                                @if (!string.IsNullOrEmpty(task.Resource))
+                                                {
+                                                    <a href="@task.Resource" target="_blank" class="task-link">
+                                                        📚 Resource
+                                                    </a>
+                                                }
+                                            </div>
+                                            <span class="task-duration">@task.EstimatedHours h</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="milestone-footer">
+                                    <div class="skill-gains">
+                                        <span class="label">Skills gained:</span>
+                                        @foreach (var skill in milestone.SkillsGained)
+                                        {
+                                            <span class="skill-badge">@skill</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Weekly Schedule -->
+        <div class="schedule-section">
+            <h2>📅 This Week's Focus</h2>
+            <div class="weekly-tasks">
+                @foreach (var task in GetWeeklyTasks())
+                {
+                    <div class="weekly-task @(task.IsCompleted ? "completed" : "")">
+                        <div class="day-badge">@task.Day</div>
+                        <div class="task-details">
+                            <h4>@task.Title</h4>
+                            <p>@task.Description</p>
+                        </div>
+                        <span class="time-estimate">@task.EstimatedHours h</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool hasRoadmap = false;
+    private bool isGenerating = false;
+
+    // Form inputs
+    private string currentRole = "";
+    private string targetRole = "";
+    private string targetCompany = "";
+    private string skillInput = "";
+    private List<string> currentSkills = new();
+    private int hoursPerWeek = 15;
+
+    // Roadmap data
+    private List<MilestoneDto> roadmapMilestones = new();
+    private int activeMilestoneIndex = 0;
+
+    private int completedMilestones => roadmapMilestones.Count(m => m.Tasks.All(t => t.IsCompleted));
+    private int completedTasks => roadmapMilestones.Sum(m => m.Tasks.Count(t => t.IsCompleted));
+    private int totalTasks => roadmapMilestones.Sum(m => m.Tasks.Count);
+    private int overallProgress => totalTasks > 0 ? (int)((double)completedTasks / totalTasks * 100) : 0;
+
+    private void HandleSkillKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(skillInput))
+        {
+            if (!currentSkills.Contains(skillInput, StringComparer.OrdinalIgnoreCase))
+            {
+                currentSkills.Add(skillInput);
+            }
+            skillInput = "";
+        }
+    }
+
+    private async Task GenerateRoadmap()
+    {
+        if (string.IsNullOrWhiteSpace(targetRole)) return;
+
+        isGenerating = true;
+        StateHasChanged();
+
+        await Task.Delay(2000); // Simulate AI generation
+
+        // Generate sample roadmap
+        roadmapMilestones = new List<MilestoneDto>
+        {
+            new() {
+                Month = 1,
+                Title = "Foundation Building",
+                Description = "Strengthen core skills and fill knowledge gaps",
+                SkillsGained = new List<string> { "System Design", "Data Structures" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "Complete System Design primer course", EstimatedHours = 10, Resource = "https://example.com" },
+                    new() { Title = "Review advanced data structures", EstimatedHours = 8 },
+                    new() { Title = "Practice 20 LeetCode mediums", EstimatedHours = 15 },
+                    new() { Title = "Read 'Designing Data-Intensive Applications' Ch 1-3", EstimatedHours = 6 }
+                }
+            },
+            new() {
+                Month = 2,
+                Title = "Deep Dive: Core Technologies",
+                Description = "Master key technologies required for target role",
+                SkillsGained = new List<string> { "Distributed Systems", "Cloud Architecture" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "AWS Solutions Architect certification prep", EstimatedHours = 20 },
+                    new() { Title = "Build a distributed system project", EstimatedHours = 15 },
+                    new() { Title = "Study CAP theorem and consensus algorithms", EstimatedHours = 8 }
+                }
+            },
+            new() {
+                Month = 3,
+                Title = "Interview Preparation",
+                Description = "Start interview-focused preparation",
+                SkillsGained = new List<string> { "Behavioral Interviews", "Coding Interviews" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "Complete 50 LeetCode problems (mix of medium/hard)", EstimatedHours = 25 },
+                    new() { Title = "5 mock behavioral interviews", EstimatedHours = 5 },
+                    new() { Title = "Prepare STAR stories for common questions", EstimatedHours = 4 }
+                }
+            },
+            new() {
+                Month = 4,
+                Title = "Networking & Applications",
+                Description = "Build connections and start applying",
+                SkillsGained = new List<string> { "Networking", "Personal Branding" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "Optimize LinkedIn profile", EstimatedHours = 3 },
+                    new() { Title = "Reach out to 10 contacts at target companies", EstimatedHours = 5 },
+                    new() { Title = "Apply to 10 target positions", EstimatedHours = 10 },
+                    new() { Title = "Continue daily LeetCode practice", EstimatedHours = 15 }
+                }
+            },
+            new() {
+                Month = 5,
+                Title = "Active Interviewing",
+                Description = "Focus on interview performance",
+                SkillsGained = new List<string> { "System Design Interviews", "Technical Communication" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "Practice 3 full system design sessions", EstimatedHours = 9 },
+                    new() { Title = "Mock interviews with peers", EstimatedHours = 6 },
+                    new() { Title = "Review and improve after each real interview", EstimatedHours = 10 }
+                }
+            },
+            new() {
+                Month = 6,
+                Title = "Offer Negotiation & Transition",
+                Description = "Secure and negotiate the best offer",
+                SkillsGained = new List<string> { "Negotiation", "Career Planning" },
+                Tasks = new List<TaskDto>
+                {
+                    new() { Title = "Research compensation data", EstimatedHours = 3 },
+                    new() { Title = "Practice negotiation scenarios", EstimatedHours = 2 },
+                    new() { Title = "Plan transition from current role", EstimatedHours = 4 }
+                }
+            }
+        };
+
+        hasRoadmap = true;
+        isGenerating = false;
+    }
+
+    private void ResetRoadmap()
+    {
+        hasRoadmap = false;
+        roadmapMilestones.Clear();
+    }
+
+    private void ToggleMilestone(int index)
+    {
+        activeMilestoneIndex = activeMilestoneIndex == index ? -1 : index;
+    }
+
+    private void ToggleTask(TaskDto task)
+    {
+        task.IsCompleted = !task.IsCompleted;
+    }
+
+    private List<WeeklyTaskDto> GetWeeklyTasks()
+    {
+        var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+        var tasks = new List<WeeklyTaskDto>();
+
+        var pending = roadmapMilestones
+            .SelectMany(m => m.Tasks.Where(t => !t.IsCompleted))
+            .Take(5)
+            .ToList();
+
+        for (int i = 0; i < Math.Min(pending.Count, 5); i++)
+        {
+            tasks.Add(new WeeklyTaskDto
+            {
+                Day = days[i],
+                Title = pending[i].Title,
+                Description = $"From: Month {roadmapMilestones.First(m => m.Tasks.Contains(pending[i])).Month}",
+                EstimatedHours = pending[i].EstimatedHours,
+                IsCompleted = false
+            });
+        }
+
+        return tasks;
+    }
+
+    private class MilestoneDto
+    {
+        public int Month { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<string> SkillsGained { get; set; } = new();
+        public List<TaskDto> Tasks { get; set; } = new();
+    }
+
+    private class TaskDto
+    {
+        public string Title { get; set; } = "";
+        public int EstimatedHours { get; set; }
+        public string? Resource { get; set; }
+        public bool IsCompleted { get; set; }
+    }
+
+    private class WeeklyTaskDto
+    {
+        public string Day { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public int EstimatedHours { get; set; }
+        public bool IsCompleted { get; set; }
+    }
+}
+
+<style>
+    .roadmap-page {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .header-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+    }
+
+    /* Generate Section */
+    .generate-section {
+        display: flex;
+        justify-content: center;
+    }
+
+    .generate-card {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .card-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .generate-card h2 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .generate-card > p {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+
+    .form-section {
+        text-align: left;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .form-group input[type="text"] {
+        width: 100%;
+        padding: 0.875rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .skill-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .skill-tag {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid var(--primary);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+    }
+
+    .skill-tag button {
+        background: none;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+    }
+
+    .hours-slider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hours-slider input[type="range"] {
+        flex: 1;
+        -webkit-appearance: none;
+        height: 8px;
+        background: var(--bg-secondary);
+        border-radius: 4px;
+    }
+
+    .hours-slider input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--primary);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .hours-value {
+        min-width: 100px;
+        text-align: right;
+        color: var(--text-primary);
+    }
+
+    .btn-large {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+        margin-top: 1rem;
+    }
+
+    /* Overview */
+    .overview-card {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .overview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+
+    .overview-header h2 {
+        color: white;
+        margin: 0 0 0.25rem;
+    }
+
+    .overview-header p {
+        color: var(--primary);
+        margin: 0;
+    }
+
+    .progress-stats {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat {
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: var(--bg-secondary);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    /* Timeline */
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border);
+    }
+
+    .milestone {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .milestone-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .milestone.active .milestone-header {
+        border-color: var(--primary);
+    }
+
+    .milestone.completed .milestone-header {
+        border-color: var(--success);
+    }
+
+    .milestone-marker {
+        position: absolute;
+        left: -2rem;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        z-index: 1;
+    }
+
+    .milestone.active .milestone-marker {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .milestone.completed .milestone-marker {
+        background: var(--success);
+        border-color: var(--success);
+    }
+
+    .milestone-info {
+        flex: 1;
+    }
+
+    .milestone-meta {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .month-badge {
+        padding: 0.25rem 0.5rem;
+        background: rgba(139, 92, 246, 0.2);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: var(--primary);
+    }
+
+    .progress-badge {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .milestone-info h3 {
+        color: white;
+        margin: 0 0 0.25rem;
+        font-size: 1.1rem;
+    }
+
+    .milestone-info p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .expand-icon {
+        color: var(--text-muted);
+    }
+
+    .milestone-content {
+        margin-top: 0.5rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        margin-left: 0;
+    }
+
+    .tasks-list {
+        margin-bottom: 1rem;
+    }
+
+    .task-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .task-item.completed {
+        opacity: 0.6;
+    }
+
+    .task-item.completed .task-title {
+        text-decoration: line-through;
+    }
+
+    .task-checkbox {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .task-checkbox input {
+        display: none;
+    }
+
+    .task-checkbox .checkmark {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .task-checkbox input:checked + .checkmark {
+        background: var(--success);
+        border-color: var(--success);
+    }
+
+    .task-checkbox input:checked + .checkmark::after {
+        content: '✓';
+        color: white;
+        font-size: 0.75rem;
+    }
+
+    .task-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .task-title {
+        color: var(--text-primary);
+    }
+
+    .task-link {
+        font-size: 0.8rem;
+        color: var(--secondary);
+        text-decoration: none;
+    }
+
+    .task-duration {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding: 0.25rem 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+    }
+
+    .skill-gains {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .skill-gains .label {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .skill-badge {
+        padding: 0.25rem 0.5rem;
+        background: rgba(6, 182, 212, 0.2);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        color: var(--secondary);
+    }
+
+    /* Schedule Section */
+    .schedule-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+    }
+
+    .schedule-section h2 {
+        color: white;
+        margin: 0 0 1rem;
+    }
+
+    .weekly-task {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+    }
+
+    .day-badge {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: white;
+    }
+
+    .task-details {
+        flex: 1;
+    }
+
+    .task-details h4 {
+        color: white;
+        margin: 0 0 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .task-details p {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 0.8rem;
+    }
+
+    .time-estimate {
+        padding: 0.375rem 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>

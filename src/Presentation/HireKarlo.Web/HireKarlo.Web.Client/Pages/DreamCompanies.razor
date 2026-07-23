@@ -1,0 +1,771 @@
+@page "/dream-companies"
+@rendermode InteractiveAuto
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>🏢 Dream Companies - HireKarlo</PageTitle>
+
+<div class="dream-companies-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-badge">🏢 Dream Companies</div>
+            <h1>Track Your <span class="gradient-text">Target Companies</span></h1>
+            <p>Add up to 10 companies you'd love to work for. We'll prioritize job alerts and track opportunities.</p>
+        </div>
+    </div>
+
+    <!-- Add Company Section -->
+    <div class="add-company-section">
+        <div class="search-container">
+            <div class="search-input-group">
+                <span class="input-icon">🔍</span>
+                <input type="text" @bind="searchQuery" @bind:event="oninput" 
+                       @onkeydown="HandleKeyDown"
+                       placeholder="Search or add a company..." />
+                @if (filteredSuggestions.Any() && !string.IsNullOrEmpty(searchQuery))
+                {
+                    <div class="suggestions-dropdown">
+                        @foreach (var company in filteredSuggestions.Take(5))
+                        {
+                            <button class="suggestion-item" @onclick="() => AddCompany(company)">
+                                <span class="company-avatar">@company[0]</span>
+                                <span>@company</span>
+                            </button>
+                        }
+                        @if (!popularCompanies.Contains(searchQuery, StringComparer.OrdinalIgnoreCase))
+                        {
+                            <button class="suggestion-item custom" @onclick="() => AddCompany(searchQuery)">
+                                <span class="company-avatar">+</span>
+                                <span>Add "@searchQuery"</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+            <button class="btn btn-primary" @onclick="() => AddCompany(searchQuery)" 
+                    disabled="@(string.IsNullOrWhiteSpace(searchQuery) || dreamCompanies.Count >= 10)">
+                + Add Company
+            </button>
+        </div>
+        <p class="company-count">@dreamCompanies.Count / 10 companies added</p>
+    </div>
+
+    <!-- Companies Grid -->
+    <div class="companies-section">
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading your dream companies...</p>
+            </div>
+        }
+        else if (dreamCompanies.Any())
+        {
+            <div class="companies-grid">
+                @foreach (var company in dreamCompanies.OrderBy(c => c.Priority))
+                {
+                    <div class="company-card @(company.TrackJobs ? "tracking" : "")">
+                        <div class="card-header">
+                            <div class="company-avatar large">@company.Name[0]</div>
+                            <div class="company-info">
+                                <h3>@company.Name</h3>
+                                <p class="priority-badge">Priority #@company.Priority</p>
+                            </div>
+                            <button class="btn-icon delete" @onclick="() => RemoveCompany(company)" title="Remove">
+                                🗑️
+                            </button>
+                        </div>
+
+                        <div class="card-stats">
+                            <div class="stat">
+                                <span class="stat-value">@company.OpenJobs</span>
+                                <span class="stat-label">Open Jobs</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">@company.ContactsCount</span>
+                                <span class="stat-label">Contacts</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">@company.ApplicationsCount</span>
+                                <span class="stat-label">Applied</span>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked="@company.TrackJobs" 
+                                       @onchange="() => ToggleTracking(company)" />
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Track Jobs</span>
+                            </label>
+
+                            <div class="priority-controls">
+                                <button class="btn-icon" @onclick="() => MovePriority(company, -1)" 
+                                        disabled="@(company.Priority <= 1)" title="Move up">
+                                    ⬆️
+                                </button>
+                                <button class="btn-icon" @onclick="() => MovePriority(company, 1)"
+                                        disabled="@(company.Priority >= dreamCompanies.Count)" title="Move down">
+                                    ⬇️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <button class="btn btn-secondary btn-sm" @onclick="() => ViewJobs(company)">
+                                🔍 View Jobs
+                            </button>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => AddContact(company)">
+                                👤 Add Contact
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">🏢</div>
+                <h3>No Dream Companies Yet</h3>
+                <p>Add companies you'd love to work for to get personalized job alerts and tracking.</p>
+
+                <div class="suggested-companies">
+                    <h4>Popular Companies</h4>
+                    <div class="company-chips">
+                        @foreach (var company in popularCompanies.Take(8))
+                        {
+                            <button class="company-chip" @onclick="() => AddCompany(company)">
+                                <span class="chip-avatar">@company[0]</span>
+                                @company
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Job Alerts Section -->
+    @if (dreamCompanies.Any(c => c.TrackJobs))
+    {
+        <div class="alerts-section">
+            <h2>📬 Recent Job Alerts</h2>
+            <div class="alerts-list">
+                @foreach (var alert in recentAlerts.Take(5))
+                {
+                    <div class="alert-item">
+                        <div class="alert-company">@alert.Company</div>
+                        <div class="alert-info">
+                            <h4>@alert.JobTitle</h4>
+                            <p>@alert.Location • @GetTimeAgo(alert.PostedDate)</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" @onclick="() => ViewJob(alert)">
+                            View →
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DreamCompanyDto> dreamCompanies = new();
+    private List<JobAlertDto> recentAlerts = new();
+    private string searchQuery = "";
+    private bool isLoading = true;
+
+    private readonly List<string> popularCompanies = new()
+    {
+        "Google", "Microsoft", "Amazon", "Apple", "Meta", "Netflix", "Uber", "Airbnb",
+        "Stripe", "Salesforce", "Adobe", "Spotify", "Twitter", "LinkedIn", "OpenAI",
+        "Nvidia", "Tesla", "Disney", "Goldman Sachs", "JPMorgan", "Coinbase", "Shopify"
+    };
+
+    private List<string> filteredSuggestions => popularCompanies
+        .Where(c => c.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) &&
+                    !dreamCompanies.Any(dc => dc.Name.Equals(c, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadCompanies();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCompanies()
+    {
+        isLoading = true;
+
+        // Simulated data - in production, call API
+        await Task.Delay(500);
+
+        dreamCompanies = new List<DreamCompanyDto>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Google", Priority = 1, TrackJobs = true, OpenJobs = 45, ContactsCount = 2, ApplicationsCount = 1 },
+            new() { Id = Guid.NewGuid(), Name = "Microsoft", Priority = 2, TrackJobs = true, OpenJobs = 67, ContactsCount = 3, ApplicationsCount = 0 },
+            new() { Id = Guid.NewGuid(), Name = "OpenAI", Priority = 3, TrackJobs = false, OpenJobs = 12, ContactsCount = 0, ApplicationsCount = 0 }
+        };
+
+        recentAlerts = new List<JobAlertDto>
+        {
+            new() { Company = "Google", JobTitle = "Senior Software Engineer", Location = "Mountain View, CA", PostedDate = DateTime.Now.AddHours(-2) },
+            new() { Company = "Microsoft", JobTitle = "Product Manager", Location = "Remote", PostedDate = DateTime.Now.AddDays(-1) }
+        };
+
+        isLoading = false;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(searchQuery))
+        {
+            AddCompany(searchQuery);
+        }
+    }
+
+    private void AddCompany(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || dreamCompanies.Count >= 10) return;
+        if (dreamCompanies.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+
+        dreamCompanies.Add(new DreamCompanyDto
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Priority = dreamCompanies.Count + 1,
+            TrackJobs = true,
+            OpenJobs = new Random().Next(5, 50),
+            ContactsCount = 0,
+            ApplicationsCount = 0
+        });
+
+        searchQuery = "";
+    }
+
+    private void RemoveCompany(DreamCompanyDto company)
+    {
+        dreamCompanies.Remove(company);
+        // Re-order priorities
+        var i = 1;
+        foreach (var c in dreamCompanies.OrderBy(c => c.Priority))
+        {
+            c.Priority = i++;
+        }
+    }
+
+    private void ToggleTracking(DreamCompanyDto company)
+    {
+        company.TrackJobs = !company.TrackJobs;
+    }
+
+    private void MovePriority(DreamCompanyDto company, int direction)
+    {
+        var newPriority = company.Priority + direction;
+        var other = dreamCompanies.FirstOrDefault(c => c.Priority == newPriority);
+        if (other != null)
+        {
+            other.Priority = company.Priority;
+            company.Priority = newPriority;
+        }
+    }
+
+    private void ViewJobs(DreamCompanyDto company)
+    {
+        Navigation.NavigateTo($"/jobs?company={Uri.EscapeDataString(company.Name)}");
+    }
+
+    private void AddContact(DreamCompanyDto company)
+    {
+        Navigation.NavigateTo($"/contacts?company={Uri.EscapeDataString(company.Name)}");
+    }
+
+    private void ViewJob(JobAlertDto alert)
+    {
+        Navigation.NavigateTo("/jobs");
+    }
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var diff = DateTime.Now - date;
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalDays}d ago";
+    }
+
+    // DTOs
+    private class DreamCompanyDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Priority { get; set; }
+        public bool TrackJobs { get; set; }
+        public int OpenJobs { get; set; }
+        public int ContactsCount { get; set; }
+        public int ApplicationsCount { get; set; }
+    }
+
+    private class JobAlertDto
+    {
+        public string Company { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string Location { get; set; } = "";
+        public DateTime PostedDate { get; set; }
+    }
+}
+
+<style>
+    .dream-companies-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .header-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2.25rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+    }
+
+    /* Add Company Section */
+    .add-company-section {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .search-container {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .search-input-group {
+        flex: 1;
+        position: relative;
+    }
+
+    .search-input-group input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .suggestions-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-top: 0.5rem;
+        z-index: 100;
+        overflow: hidden;
+    }
+
+    .suggestion-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.2s;
+    }
+
+    .suggestion-item:hover {
+        background: rgba(139, 92, 246, 0.2);
+    }
+
+    .suggestion-item.custom {
+        border-top: 1px solid var(--border);
+        color: var(--primary);
+    }
+
+    .company-count {
+        text-align: right;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin-top: 0.75rem;
+    }
+
+    /* Companies Grid */
+    .companies-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .company-card {
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s;
+    }
+
+    .company-card.tracking {
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .company-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .company-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .company-avatar.large {
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
+    }
+
+    .company-info {
+        flex: 1;
+    }
+
+    .company-info h3 {
+        color: white;
+        margin: 0 0 0.25rem;
+    }
+
+    .priority-badge {
+        font-size: 0.75rem;
+        color: var(--primary);
+        margin: 0;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-icon:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .btn-icon.delete:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: var(--error);
+    }
+
+    .card-stats {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 1rem;
+    }
+
+    .stat {
+        flex: 1;
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .card-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .toggle-switch {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+    }
+
+    .toggle-switch input {
+        display: none;
+    }
+
+    .toggle-slider {
+        width: 44px;
+        height: 24px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        position: relative;
+        transition: background 0.3s;
+    }
+
+    .toggle-slider::after {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        top: 3px;
+        left: 3px;
+        transition: transform 0.3s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background: var(--primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::after {
+        transform: translateX(20px);
+    }
+
+    .toggle-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .priority-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .card-footer {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .card-footer .btn {
+        flex: 1;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state > p {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+
+    .suggested-companies h4 {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .company-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .company-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .company-chip:hover {
+        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--primary);
+        color: var(--text-primary);
+    }
+
+    .chip-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    /* Alerts Section */
+    .alerts-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+    }
+
+    .alerts-section h2 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .alert-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+    }
+
+    .alert-company {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+    }
+
+    .alert-info {
+        flex: 1;
+    }
+
+    .alert-info h4 {
+        color: white;
+        margin: 0 0 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .alert-info p {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 0.8rem;
+    }
+
+    /* Loading */
+    .loading-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 768px) {
+        .search-container {
+            flex-direction: column;
+        }
+
+        .companies-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
