@@ -1,310 +1,113 @@
 ﻿@page "/"
 @rendermode InteractiveAuto
-@inject ApiClient Api
-@inject AuthStateProvider AuthState
 
-<PageTitle>Dashboard - HireKarlo</PageTitle>
+<PageTitle>HireKarlo - AI-Powered Career Tools</PageTitle>
 
 <div class="dashboard">
-    @if (!AuthState.IsAuthenticated)
-    {
-        <!-- Landing Section for Non-Authenticated Users -->
-        <section class="hero">
-            <div class="hero-content">
-                <h1>Land Your Dream Job with <span class="gradient-text">AI-Powered</span> Career Tools</h1>
-                <p>Resume optimization, mock interviews, personalized learning paths, and job matching - all powered by AI.</p>
-                <div class="hero-cta">
-                    <a href="/login" class="btn btn-primary">Get Started Free</a>
-                    <a href="#features" class="btn btn-secondary">Learn More</a>
-                </div>
-            </div>
-            <div class="hero-stats">
-                <div class="stat">
-                    <span class="stat-value">10K+</span>
-                    <span class="stat-label">Job Seekers</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value">85%</span>
-                    <span class="stat-label">Interview Success</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value">500+</span>
-                    <span class="stat-label">Companies</span>
-                </div>
-            </div>
-        </section>
-
-        <section id="features" class="features">
-            <h2>Everything You Need to Succeed</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <span class="feature-icon">📄</span>
-                    <h3>ATS-Optimized Resumes</h3>
-                    <p>Get real-time ATS scores and AI suggestions to beat applicant tracking systems.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🎤</span>
-                    <h3>Mock Interviews</h3>
-                    <p>Practice with AI-powered interviews tailored to your target company.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">📚</span>
-                    <h3>Learning Paths</h3>
-                    <p>Personalized study plans based on company interview patterns.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">💼</span>
-                    <h3>LinkedIn Optimizer</h3>
-                    <p>Boost your profile visibility with keyword optimization.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🎯</span>
-                    <h3>Job Matching</h3>
-                    <p>AI matches you with jobs based on skills and experience.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🤖</span>
-                    <h3>AI Career Coach</h3>
-                    <p>Get instant career advice from our AI assistant.</p>
-                </div>
-            </div>
-        </section>
-    }
-    else
-    {
-        <!-- Authenticated Dashboard -->
-        <div class="dashboard-header">
-            <h1>Welcome back, @AuthState.CurrentUser?.Name! 👋</h1>
-            <p>Here's your career progress overview</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon applications">📋</div>
-                <div class="stat-info">
-                    <span class="stat-value">@(dashboard?.TotalApplications ?? 0)</span>
-                    <span class="stat-label">Applications</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon jobs">💼</div>
-                <div class="stat-info">
-                    <span class="stat-value">@(dashboard?.ActiveJobs ?? 0)</span>
-                    <span class="stat-label">Active Jobs</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon interviews">🎤</div>
-                <div class="stat-info">
-                    <span class="stat-value">@(dashboard?.Interviews ?? 0)</span>
-                    <span class="stat-label">Interviews</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon learning">📚</div>
-                <div class="stat-info">
-                    <span class="stat-value">@(dashboard?.LearningProgress ?? 0)%</span>
-                    <span class="stat-label">Learning Progress</span>
-                </div>
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Land Your Dream Job with <span class="gradient-text">AI-Powered</span> Career Tools</h1>
+            <p>Resume optimization, mock interviews, personalized learning paths, and job matching - all powered by AI.</p>
+            <div class="hero-cta">
+                <a href="/login" class="btn btn-primary">Get Started Free</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
             </div>
         </div>
-
-        <div class="dashboard-grid">
-            <!-- Top Job Matches -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>🎯 Top Job Matches</h3>
-                    <a href="/jobs" class="link">View All</a>
-                </div>
-                <div class="card-body">
-                    @if (dashboard?.TopMatches?.Any() == true)
-                    {
-                        @foreach (var match in dashboard.TopMatches.Take(5))
-                        {
-                            <div class="job-match-item">
-                                <div class="job-info">
-                                    <span class="job-title">@match.Title</span>
-                                    <span class="job-company">@match.Company</span>
-                                </div>
-                                <div class="match-score @GetScoreClass(match.MatchScore)">
-                                    @match.MatchScore%
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="empty-state">Upload your resume to see job matches!</p>
-                    }
-                </div>
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-value">10K+</span>
+                <span class="stat-label">Job Seekers</span>
             </div>
-
-            <!-- Recent Activity -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>📊 Recent Activity</h3>
-                </div>
-                <div class="card-body">
-                    @if (dashboard?.RecentActivities?.Any() == true)
-                    {
-                        @foreach (var activity in dashboard.RecentActivities.Take(5))
-                        {
-                            <div class="activity-item">
-                                <span class="activity-icon">@GetActivityIcon(activity.Type)</span>
-                                <div class="activity-info">
-                                    <span class="activity-title">@activity.Title</span>
-                                    <span class="activity-time">@activity.Timestamp.ToString("MMM dd, h:mm tt")</span>
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="empty-state">No recent activity yet</p>
-                    }
-                </div>
+            <div class="stat">
+                <span class="stat-value">85%</span>
+                <span class="stat-label">Interview Success</span>
             </div>
-
-            <!-- Quick Actions -->
-            <div class="card quick-actions">
-                <div class="card-header">
-                    <h3>⚡ Quick Actions</h3>
-                </div>
-                <div class="card-body actions-grid">
-                    <a href="/resumes" class="action-btn">
-                        <span>📄</span>
-                        <span>Upload Resume</span>
-                    </a>
-                    <a href="/mock-interview" class="action-btn">
-                        <span>🎤</span>
-                        <span>Start Interview</span>
-                    </a>
-                    <a href="/learning" class="action-btn">
-                        <span>📚</span>
-                        <span>Continue Learning</span>
-                    </a>
-                    <a href="/linkedin" class="action-btn">
-                        <span>💼</span>
-                        <span>Optimize LinkedIn</span>
-                    </a>
-                </div>
+            <div class="stat">
+                <span class="stat-value">500+</span>
+                <span class="stat-label">Companies</span>
             </div>
         </div>
-    }
+    </section>
+
+    <section id="features" class="features">
+        <h2>Everything You Need to Succeed</h2>
+        <div class="feature-grid">
+            <a href="/resumes" class="feature-card">
+                <span class="feature-icon">📄</span>
+                <h3>ATS-Optimized Resumes</h3>
+                <p>Get real-time ATS scores and AI suggestions to beat applicant tracking systems.</p>
+            </a>
+            <a href="/mock-interview" class="feature-card">
+                <span class="feature-icon">🎤</span>
+                <h3>Mock Interviews</h3>
+                <p>Practice with AI-powered interviews tailored to your target company.</p>
+            </a>
+            <a href="/learning" class="feature-card">
+                <span class="feature-icon">📚</span>
+                <h3>Learning Paths</h3>
+                <p>Personalized study plans based on company interview patterns.</p>
+            </a>
+            <a href="/linkedin" class="feature-card">
+                <span class="feature-icon">💼</span>
+                <h3>LinkedIn Optimizer</h3>
+                <p>Boost your profile visibility with keyword optimization.</p>
+            </a>
+            <a href="/jobs" class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <h3>Job Matching</h3>
+                <p>AI matches you with jobs based on skills and experience.</p>
+            </a>
+            <a href="/chat" class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h3>AI Career Coach</h3>
+                <p>Get instant career advice from our AI assistant.</p>
+            </a>
+        </div>
+    </section>
 </div>
 
 <style>
     .dashboard { max-width: 1400px; margin: 0 auto; }
 
-    /* Hero */
     .hero { text-align: center; padding: 4rem 2rem; }
-    .hero h1 { font-size: 3rem; margin-bottom: 1rem; line-height: 1.2; }
-    .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 1.25rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem; }
-    .hero-cta { display: flex; gap: 1rem; justify-content: center; }
-    .btn { padding: 0.875rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
-    .btn-secondary { border: 1px solid var(--border); color: var(--text-primary); }
-    .hero-stats { display: flex; justify-content: center; gap: 4rem; margin-top: 4rem; }
+    .hero h1 { font-size: 3rem; margin-bottom: 1rem; line-height: 1.2; color: white; }
+    .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero p { font-size: 1.25rem; color: rgba(255,255,255,0.7); max-width: 600px; margin: 0 auto 2rem; }
+    .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn { padding: 0.875rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; display: inline-block; }
+    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4); }
+    .btn-secondary { border: 1px solid rgba(255,255,255,0.2); color: white; background: rgba(255,255,255,0.05); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+    .hero-stats { display: flex; justify-content: center; gap: 4rem; margin-top: 4rem; flex-wrap: wrap; }
     .stat { text-align: center; }
-    .stat-value { display: block; font-size: 2.5rem; font-weight: 700; color: var(--primary); }
-    .stat-label { color: var(--text-secondary); }
+    .stat-value { display: block; font-size: 2.5rem; font-weight: 700; color: #6366f1; }
+    .stat-label { color: rgba(255,255,255,0.6); }
 
-    /* Features */
     .features { padding: 4rem 2rem; }
-    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 3rem; }
+    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 3rem; color: white; }
     .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-    .feature-card { background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border); transition: all 0.3s; }
-    .feature-card:hover { border-color: var(--primary); transform: translateY(-4px); }
+    .feature-card { 
+        background: rgba(255,255,255,0.05); 
+        padding: 2rem; 
+        border-radius: 12px; 
+        border: 1px solid rgba(255,255,255,0.1); 
+        transition: all 0.3s; 
+        text-decoration: none;
+        display: block;
+    }
+    .feature-card:hover { 
+        border-color: #6366f1; 
+        transform: translateY(-4px); 
+        background: rgba(99, 102, 241, 0.1);
+    }
     .feature-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
-    .feature-card h3 { margin-bottom: 0.5rem; }
-    .feature-card p { color: var(--text-secondary); }
+    .feature-card h3 { margin-bottom: 0.5rem; color: white; }
+    .feature-card p { color: rgba(255,255,255,0.6); margin: 0; }
 
-    /* Dashboard */
-    .dashboard-header { margin-bottom: 2rem; }
-    .dashboard-header h1 { font-size: 1.75rem; }
-    .dashboard-header p { color: var(--text-secondary); }
-
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
-    .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border); }
-    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-    .stat-icon.applications { background: rgba(99, 102, 241, 0.2); }
-    .stat-icon.jobs { background: rgba(34, 197, 94, 0.2); }
-    .stat-icon.interviews { background: rgba(245, 158, 11, 0.2); }
-    .stat-icon.learning { background: rgba(168, 85, 247, 0.2); }
-    .stat-info { display: flex; flex-direction: column; }
-    .stat-info .stat-value { font-size: 1.5rem; font-weight: 700; }
-    .stat-info .stat-label { color: var(--text-secondary); font-size: 0.875rem; }
-
-    .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-    .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
-    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .card-header h3 { font-size: 1rem; }
-    .link { color: var(--primary); text-decoration: none; font-size: 0.875rem; }
-    .card-body { padding: 1rem 1.25rem; }
-
-    .job-match-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
-    .job-match-item:last-child { border-bottom: none; }
-    .job-title { display: block; font-weight: 500; }
-    .job-company { color: var(--text-secondary); font-size: 0.875rem; }
-    .match-score { padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.875rem; }
-    .match-score.high { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .match-score.medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .match-score.low { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-
-    .activity-item { display: flex; gap: 0.75rem; padding: 0.75rem 0; }
-    .activity-icon { font-size: 1.25rem; }
-    .activity-info { display: flex; flex-direction: column; }
-    .activity-title { font-weight: 500; }
-    .activity-time { color: var(--text-secondary); font-size: 0.8rem; }
-
-    .actions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.25rem; background: var(--bg-hover); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s; }
-    .action-btn:hover { background: var(--primary); }
-    .action-btn span:first-child { font-size: 1.5rem; }
-
-    .empty-state { text-align: center; color: var(--text-secondary); padding: 2rem; }
-
-    @@media (max-width: 1024px) {
-        .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        .dashboard-grid { grid-template-columns: 1fr; }
+    @@media (max-width: 768px) {
+        .hero h1 { font-size: 2rem; }
+        .hero-stats { gap: 2rem; }
+        .stat-value { font-size: 1.75rem; }
     }
 </style>
-
-@code {
-    private DashboardData? dashboard;
-    private bool isInitialized = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !isInitialized)
-        {
-            await AuthState.InitializeAsync();
-            isInitialized = true;
-
-            if (AuthState.IsAuthenticated)
-            {
-                try
-                {
-                    dashboard = await Api.GetDashboardAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error loading dashboard: {ex.Message}");
-                }
-            }
-            StateHasChanged();
-        }
-    }
-
-    private string GetScoreClass(int score) => score >= 80 ? "high" : score >= 60 ? "medium" : "low";
-    private string GetActivityIcon(string type) => type switch
-    {
-        "application" => "📋",
-        "interview" => "🎤",
-        "learning" => "📚",
-        "resume" => "📄",
-        _ => "📌"
-    };
-}
