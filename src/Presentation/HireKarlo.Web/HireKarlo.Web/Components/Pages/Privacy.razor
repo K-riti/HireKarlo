@@ -1,0 +1,241 @@
+@page "/privacy"
+
+<PageTitle>Privacy Policy - HireKarlo</PageTitle>
+
+<div class="privacy-page">
+    <div class="privacy-container">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+
+        <section>
+            <h2>1. Introduction</h2>
+            <p>
+                Welcome to HireKarlo ("we," "our," or "us"). We are committed to protecting your personal information 
+                and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard 
+                your information when you use our AI-powered career platform.
+            </p>
+        </section>
+
+        <section>
+            <h2>2. Information We Collect</h2>
+
+            <h3>2.1 Information You Provide</h3>
+            <ul>
+                <li><strong>Account Information:</strong> Name, email address, and password when you register</li>
+                <li><strong>Profile Information:</strong> Resume, skills, work experience, education, and career preferences</li>
+                <li><strong>OAuth Data:</strong> When you sign in with Google or LinkedIn, we receive your name, email, and profile picture</li>
+                <li><strong>Job Preferences:</strong> Dream companies, target roles, location preferences</li>
+                <li><strong>Communication Data:</strong> Messages sent through our AI chat feature</li>
+            </ul>
+
+            <h3>2.2 Information Collected Automatically</h3>
+            <ul>
+                <li>Device information (browser type, operating system)</li>
+                <li>Usage data (pages visited, features used)</li>
+                <li>IP address and approximate location</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>3. How We Use Your Information</h2>
+            <p>We use your information to:</p>
+            <ul>
+                <li>Provide AI-powered resume analysis and optimization</li>
+                <li>Match you with relevant job opportunities</li>
+                <li>Generate personalized learning paths and career roadmaps</li>
+                <li>Conduct mock interviews and provide feedback</li>
+                <li>Send job alerts and career recommendations (with your consent)</li>
+                <li>Improve our services and develop new features</li>
+                <li>Communicate with you about your account and our services</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. AI and Data Processing</h2>
+            <p>
+                HireKarlo uses artificial intelligence to analyze resumes, match jobs, and provide career guidance. 
+                Your data may be processed by:
+            </p>
+            <ul>
+                <li><strong>Groq AI:</strong> For natural language processing and career advice</li>
+                <li><strong>HuggingFace:</strong> For text embeddings and similarity matching</li>
+                <li><strong>Azure OpenAI:</strong> For advanced AI features (when configured)</li>
+            </ul>
+            <p>
+                We do not sell your personal data to third parties. AI processing is done solely to provide 
+                you with better career recommendations.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Data Sharing</h2>
+            <p>We may share your information with:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> Cloud hosting (Render), database services, and AI providers</li>
+                <li><strong>With Your Consent:</strong> When you explicitly choose to share your profile with employers</li>
+                <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+            </ul>
+            <p><strong>We never auto-submit job applications on your behalf.</strong> All applications require your explicit action.</p>
+        </section>
+
+        <section>
+            <h2>6. Data Security</h2>
+            <p>
+                We implement appropriate security measures including:
+            </p>
+            <ul>
+                <li>Encryption of data in transit (HTTPS/TLS)</li>
+                <li>Secure password hashing</li>
+                <li>JWT-based authentication</li>
+                <li>Regular security updates</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>7. Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li><strong>Access:</strong> Request a copy of your personal data</li>
+                <li><strong>Correction:</strong> Update or correct inaccurate information</li>
+                <li><strong>Deletion:</strong> Request deletion of your account and data</li>
+                <li><strong>Portability:</strong> Export your data in a readable format</li>
+                <li><strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>8. Cookies</h2>
+            <p>
+                We use essential cookies for authentication and session management. 
+                We do not use third-party tracking cookies for advertising purposes.
+            </p>
+        </section>
+
+        <section>
+            <h2>9. Third-Party Links</h2>
+            <p>
+                Our platform may contain links to external job boards and company career pages. 
+                We are not responsible for their privacy practices.
+            </p>
+        </section>
+
+        <section>
+            <h2>10. Children's Privacy</h2>
+            <p>
+                HireKarlo is not intended for users under 16 years of age. 
+                We do not knowingly collect data from children.
+            </p>
+        </section>
+
+        <section>
+            <h2>11. Changes to This Policy</h2>
+            <p>
+                We may update this Privacy Policy from time to time. We will notify you of any 
+                material changes by posting the new policy on this page and updating the "Last updated" date.
+            </p>
+        </section>
+
+        <section>
+            <h2>12. Contact Us</h2>
+            <p>
+                If you have questions about this Privacy Policy or your data, please contact us at:
+            </p>
+            <ul>
+                <li><strong>Email:</strong> privacy@hirekarlo.com</li>
+                <li><strong>GitHub:</strong> <a href="https://github.com/K-riti/HireKarlo" target="_blank">github.com/K-riti/HireKarlo</a></li>
+            </ul>
+        </section>
+    </div>
+</div>
+
+<style>
+    .privacy-page {
+        min-height: 100vh;
+        padding: 2rem;
+        background: var(--bg-primary, #0f0f23);
+    }
+
+    .privacy-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: linear-gradient(145deg, rgba(30, 30, 60, 0.6), rgba(20, 20, 40, 0.8));
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 16px;
+        padding: 3rem;
+        color: #e2e8f0;
+    }
+
+    .privacy-container h1 {
+        font-size: 2.5rem;
+        color: white;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .last-updated {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .privacy-container section {
+        margin-bottom: 2rem;
+    }
+
+    .privacy-container h2 {
+        font-size: 1.5rem;
+        color: #c4b5fd;
+        margin-bottom: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .privacy-container h3 {
+        font-size: 1.1rem;
+        color: #a5b4fc;
+        margin: 1rem 0 0.5rem;
+    }
+
+    .privacy-container p {
+        line-height: 1.7;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+    }
+
+    .privacy-container ul {
+        margin: 0.5rem 0 1rem 1.5rem;
+        line-height: 1.8;
+    }
+
+    .privacy-container li {
+        margin-bottom: 0.5rem;
+        color: #cbd5e1;
+    }
+
+    .privacy-container strong {
+        color: #e2e8f0;
+    }
+
+    .privacy-container a {
+        color: #06b6d4;
+        text-decoration: none;
+    }
+
+    .privacy-container a:hover {
+        text-decoration: underline;
+    }
+
+    @@media (max-width: 768px) {
+        .privacy-container {
+            padding: 1.5rem;
+        }
+
+        .privacy-container h1 {
+            font-size: 1.75rem;
+        }
+    }
+</style>
