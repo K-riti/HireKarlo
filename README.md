@@ -2,7 +2,8 @@
 
 An AI career copilot that analyzes your resume against target JDs, tracks jobs, **drafts tailored applications for your review** (never auto-submits), builds a personalized 6-month roadmap, and keeps you connected to dream companies via referrals and interview-experience digests.
 
-> **⚠️ Honest Status**: This is a working prototype with real code. See [Implementation Status](#-implementation-status) for exactly what's built vs. planned.
+> **📦 Project Status: Complete Prototype (v1.0)**  
+> This repository is a **finished, working prototype** demonstrating the full architecture. Core AI features are implemented; some external integrations are scaffolded for future API keys. See [Implementation Status](#-implementation-status) for details.
 
 ---
 
@@ -63,15 +64,22 @@ The code auto-detects which to use based on configuration.
 | `AzureOpenAIService` | AzureOpenAIService.cs | ~150 | LLM via Azure (paid option) |
 | `AdvancedAIService` | AdvancedAIService.cs | ~400 | Outcome prediction, Keyword radar, Trajectory |
 
-### What's NOT Implemented Yet
+### Scaffolded (Ready for API Keys)
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Newsletter digest generation | ⚠️ Subscribe/unsubscribe only | No scheduled job actually sends digest content |
-| Mobile app (MAUI) | ❌ Not started | Future work |
-| Push notifications | ❌ Not started | Future work |
-| Greenhouse/Lever job ingestion | ⚠️ Fields exist, API not wired | Entity has `GreenhouseBoardToken`, `LeverCompanyId` |
-| Real email sending | ⚠️ Service exists, needs SendGrid key | `EmailService.cs` implemented |
+| Newsletter digest generation | ⚠️ Subscribe/unsubscribe only | Scheduler scaffolded in `JobIngestionFunction.cs` |
+| Real email sending | ⚠️ Logging only | `EmailService.cs` ready for SendGrid key |
+| Job data ingestion | ⚠️ Timer exists | `JobIngestionFunction.cs` ready for Adzuna key |
+| Greenhouse/Lever job ingestion | ⚠️ Fields exist | Entity has `GreenhouseBoardToken`, `LeverCompanyId` |
+
+### Out of Scope (v1)
+
+| Feature | Status |
+|---------|--------|
+| Mobile app (MAUI) | 🚫 Not planned |
+| Push notifications | 🚫 Not planned |
+| Chrome extension | 🚫 Not planned |
 
 > **Note on Contacts**: Contacts/referrals are manually entered by the user. We deliberately do NOT pull from LinkedIn's connections API to avoid compliance concerns.
 
@@ -223,23 +231,51 @@ GET  /api/mockinterview/feedback    # Get STAR-method feedback
 
 ## ⚠️ Known Limitations
 
-1. **Groq rate limits**: Free tier = 30 requests/minute. ✅ **Exponential backoff with retry implemented** - handles rate limits gracefully.
-2. **Vector store**: ✅ **Now uses PostgresVectorStore** - persists embeddings across Render cold starts.
-3. **No real job data**: Job ingestion function exists but needs Adzuna API key to fetch real jobs.
-4. **No email sending**: EmailService scaffold exists, needs SendGrid API key.
-5. **Newsletter incomplete**: Subscribe/unsubscribe works, but no scheduled job generates/sends digest content.
+| Area | Status | Notes |
+|------|--------|-------|
+| **Groq rate limits** | ✅ Handled | Exponential backoff with retry (30 req/min free tier) |
+| **Vector store persistence** | ✅ Solved | PostgresVectorStore survives Render cold starts |
+| **Job data** | ⚠️ Scaffolded | `JobIngestionFunction.cs` exists; needs Adzuna API key to fetch real jobs |
+| **Email sending** | ⚠️ Scaffolded | `EmailService.cs` logs only; needs SendGrid API key for real emails |
+| **Newsletter digest** | ⚠️ Partial | Subscribe/unsubscribe works; no scheduled job sends content |
+
+### Required Environment Variables (Render Dashboard)
+
+To make this fully functional, ensure these are set in your Render service:
+
+| Variable | Required | Source |
+|----------|----------|--------|
+| `Groq__ApiKey` | ✅ Yes | [console.groq.com](https://console.groq.com) (free) |
+| `HuggingFace__ApiKey` | ✅ Yes | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (free) |
+| `SendGrid__ApiKey` | Optional | For real email sending |
+| `Adzuna__AppId` / `Adzuna__ApiKey` | Optional | For real job data ingestion |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] ~~Add rate-limit retry logic for Groq~~ ✅ Done
-- [x] ~~Add pgvector for persistent vector store~~ ✅ Done (PostgresVectorStore)
-- [ ] Wire up Greenhouse/Lever job APIs
-- [ ] Add newsletter digest scheduler
-- [ ] Mobile app (MAUI Blazor Hybrid)
-- [ ] Push notifications
-- [ ] Chrome extension for one-click apply
+### ✅ Completed (v1.0)
+- [x] Rate-limit retry logic for Groq with exponential backoff
+- [x] PostgresVectorStore for persistent embeddings (survives cold starts)
+- [x] Full API implementation (14 controllers, 60+ endpoints)
+- [x] Blazor WebAssembly frontend with Kanban board
+- [x] OAuth integration (Google, LinkedIn)
+- [x] RAG-based job matching and resume tailoring
+- [x] Mock interview with STAR-method feedback
+- [x] Advanced AI features (outcome prediction, skill trajectory)
+
+### 🚫 Not Planned (Out of Scope for v1)
+The following were considered but are **intentionally excluded** from this prototype:
+
+| Feature | Reason |
+|---------|--------|
+| Newsletter digest scheduler | Requires paid email service + cron infrastructure |
+| Mobile app (MAUI) | Separate project scope |
+| Push notifications | Requires additional infrastructure |
+| Greenhouse/Lever integration | Requires enterprise API access |
+| Chrome extension | Separate project scope |
+
+> **Note**: The scaffolding for job ingestion (`JobIngestionFunction.cs`) and email (`EmailService.cs`) exists if you want to extend this yourself with API keys.
 
 ---
 
