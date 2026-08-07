@@ -47,6 +47,16 @@ public class User : BaseEntity
     public DateTime? LastLoginAt { get; set; }
     public string? LastLoginProvider { get; set; } // Google, LinkedIn, Email
 
+    // Job Application Automation
+    public bool AutomationEnabled { get; set; } = false;
+    public int DailyApplicationTarget { get; set; } = 5; // Target number of applications per day
+    public double MinimumMatchScoreForAutomation { get; set; } = 70.0; // Only apply if >= this score
+    public bool AutoTailorResume { get; set; } = true; // Auto-tailor resume for each job
+    public Guid? PreferredResumeIdForAutomation { get; set; } // Which resume to use for automation
+    public DateTime? LastAutomationRunAt { get; set; } // Last time automation ran
+    public int AutomationApplicationsThisMonth { get; set; } = 0; // Track monthly count
+    public string? AutomationHistory { get; set; } // JSON log of automation runs
+
     // Navigation properties
     public virtual ICollection<Resume> Resumes { get; set; } = new List<Resume>();
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();

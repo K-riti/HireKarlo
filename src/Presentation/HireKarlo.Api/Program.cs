@@ -7,6 +7,7 @@ using HireKarlo.Application.Interfaces.Services;
 using HireKarlo.AtsEngine;
 using HireKarlo.Infrastructure.AI;
 using HireKarlo.Infrastructure.Auth;
+using HireKarlo.Infrastructure.BackgroundServices;
 using HireKarlo.Infrastructure.External;
 using HireKarlo.Infrastructure.Services;
 using HireKarlo.Persistence;
@@ -199,6 +200,10 @@ builder.Services.AddScoped<IAtsScorer, AtsScorer>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMatchingEngine, MatchingEngine>();
 builder.Services.AddScoped<JobApplicationService>();
+
+// Add Job Application Automation Services
+builder.Services.AddScoped<IJobApplicationAutomationService, JobApplicationAutomationService>();
+builder.Services.AddHostedService<JobApplicationAutomationBackgroundService>();
 
 // Add Resume Services
 builder.Services.AddScoped<IResumeParser, ResumeParser>();

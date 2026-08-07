@@ -134,6 +134,25 @@ public class ApiClient
     public async Task<LinkedInOptimizationResult?> OptimizeProfileAsync(LinkedInProfileRequest request)
         => await _http.PostAsJsonAsync<LinkedInOptimizationResult>("api/linkedinoptimizer/optimize", request);
 
+    // Job Application Automation
+    public async Task<AutomationSettingsResponse?> GetAutomationSettingsAsync()
+        => await _http.GetFromJsonAsync<AutomationSettingsResponse>("api/automation/settings");
+
+    public async Task<AutomationSettingsResponse?> UpdateAutomationSettingsAsync(UpdateAutomationSettingsRequest request)
+        => await _http.PutAsJsonAsync<AutomationSettingsResponse>("api/automation/settings", request);
+
+    public async Task<AutomationSettingsResponse?> EnableAutomationAsync()
+        => await _http.PostAsJsonAsync<AutomationSettingsResponse>("api/automation/enable", new { });
+
+    public async Task<AutomationSettingsResponse?> DisableAutomationAsync()
+        => await _http.PostAsJsonAsync<AutomationSettingsResponse>("api/automation/disable", new { });
+
+    public async Task<AutomationRunResponse?> RunApplicationAutomationAsync()
+        => await _http.PostAsJsonAsync<AutomationRunResponse>("api/automation/apply", new { });
+
+    public async Task<MessageResponse?> RunResumeUploadAutomationAsync()
+        => await _http.PostAsJsonAsync<MessageResponse>("api/automation/upload-resume", new { });
+
     // AI Chat
     public async Task<ChatResponse?> SendChatMessageAsync(string message, string? context = null)
         => await _http.PostAsJsonAsync<ChatResponse>("api/chat", new { Message = message, Context = context });
@@ -161,6 +180,12 @@ public static class HttpClientExtensions
     public static async Task<T?> PostAsJsonAsync<T>(this HttpClient http, string url, object data)
     {
         var response = await http.PostAsJsonAsync(url, data);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<T>() : default;
+    }
+
+    public static async Task<T?> PutAsJsonAsync<T>(this HttpClient http, string url, object data)
+    {
+        var response = await http.PutAsJsonAsync(url, data);
         return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<T>() : default;
     }
 }
@@ -271,5 +296,53 @@ public record AboutResult(string Original, string Optimized, int KeywordDensityB
 public record ChatResponse(string Message, List<string>? Suggestions, string? ActionType);
 
 public record ErrorResponse(string? Error);
+
+#endregion
+
+#region Automation DTOs
+
+public record UpdateAutomationSettingsRequest
+{
+    public bool Enabled { get; init; }
+    public int? DailyApplicationTarget { get; init; }
+    public double? MinimumMatchScore { get; init; }
+    public bool? AutoTailorResume { get; init; }
+    public Guid? PreferredResumeId { get; init; }
+}
+
+public record AutomationSettingsResponse
+{
+    public bool Enabled { get; init; }
+    public int DailyApplicationTarget { get; init; }
+    public double MinimumMatchScore { get; init; }
+    public bool AutoTailorResume { get; init; }
+    public Guid? PreferredResumeId { get; init; }
+}
+
+public record AutomationRunResponse
+{
+    public bool Success { get; init; }
+    public string Message { get; init; } = string.Empty;
+    public int ApplicationsSubmitted { get; init; }
+    public List<ApplicationResultDto> Applications { get; init; } = new();
+    public DateTime ExecutedAt { get; init; }
+    public string? Error { get; init; }
+}
+
+public record ApplicationResultDto
+{
+    public Guid JobListingId { get; init; }
+    public string JobTitle { get; init; } = string.Empty;
+    public string Company { get; init; } = string.Empty;
+    public double MatchScore { get; init; }
+    public bool Applied { get; init; }
+    public string? Reason { get; init; }
+    public Guid? ApplicationId { get; init; }
+}
+
+public record MessageResponse
+{
+    public string Message { get; init; } = string.Empty;
+}
 
 #endregion
