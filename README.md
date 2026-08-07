@@ -109,6 +109,7 @@ dotnet run --project src/Presentation/HireKarlo.Api
 
 | Resource | Purpose |
 |----------|---------|
+| [`docker/`](docker/) | Docker files (Dockerfile, docker-compose) |
 | [`.release/ROADMAP.md`](.release/ROADMAP.md) | Version roadmap (v1.0 → v4.0) + package distribution plan |
 | [`.release/CHANGELOG.md`](.release/CHANGELOG.md) | Release history |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design + data models |

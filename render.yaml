@@ -7,7 +7,7 @@ services:
   - type: web
     name: hirekarlo-api
     runtime: docker
-    dockerfilePath: ./Dockerfile.api
+    dockerfilePath: ./docker/Dockerfile.api
     dockerContext: .
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
@@ -40,7 +40,7 @@ services:
   - type: web
     name: hirekarlo-web
     runtime: docker
-    dockerfilePath: ./Dockerfile.web
+    dockerfilePath: ./docker/Dockerfile.web
     dockerContext: .
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
