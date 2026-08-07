@@ -22,4 +22,12 @@ public class DreamCompany : BaseEntity
     // Navigation properties
     public virtual User User { get; set; } = null!;
     public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
+
+    // Career Operating System relationships
+    public virtual DreamCompanyMatch? DreamCompanyMatch { get; set; }
+    public virtual ICollection<ReferralTarget> ReferralTargets { get; set; } = new List<ReferralTarget>();
+    public virtual ICollection<InterviewDigestEntry> InterviewDigests { get; set; } = new List<InterviewDigestEntry>();
+    public virtual ICollection<SkillGapRecommendation> SkillRecommendations { get; set; } = new List<SkillGapRecommendation>();
+    public virtual ICollection<OpportunityMatch> OpportunityMatches { get; set; } = new List<OpportunityMatch>();
 }
+

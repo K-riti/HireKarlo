@@ -243,3 +243,276 @@ public class InterviewDigestEntryConfiguration : IEntityTypeConfiguration<Interv
         builder.HasIndex(i => i.IncludedInDigest);
     }
 }
+
+/// <summary>
+/// Configuration for SkillGraph entity
+/// Part of Career Operating System
+/// </summary>
+public class SkillGraphConfiguration : IEntityTypeConfiguration<SkillGraph>
+{
+    public void Configure(EntityTypeBuilder<SkillGraph> builder)
+    {
+        builder.ToTable("SkillGraphs");
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.SkillName).IsRequired().HasMaxLength(200);
+        builder.Property(s => s.Level).IsRequired();
+        builder.Property(s => s.Proficiency).IsRequired();
+        builder.Property(s => s.Category).IsRequired().HasMaxLength(100);
+        builder.Property(s => s.AcquiredDate).IsRequired();
+        builder.Property(s => s.Evidence).HasMaxLength(500);
+        builder.Property(s => s.ImpactMetrics).HasMaxLength(2000); // JSON
+        builder.Property(s => s.LastUpdated).IsRequired();
+
+        builder.HasOne(s => s.User)
+            .WithMany(u => u.Skills)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.Recommendations)
+            .WithOne(r => r.SkillGraph)
+            .HasForeignKey(r => r.SkillGraphId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(s => s.UserId);
+        builder.HasIndex(s => s.SkillName);
+        builder.HasIndex(s => s.Category);
+    }
+}
+
+/// <summary>
+/// Configuration for DreamCompanyMatch entity
+/// USP #1: Dream Company Intelligence
+/// </summary>
+public class DreamCompanyMatchConfiguration : IEntityTypeConfiguration<DreamCompanyMatch>
+{
+    public void Configure(EntityTypeBuilder<DreamCompanyMatch> builder)
+    {
+        builder.ToTable("DreamCompanyMatches");
+        builder.HasKey(d => d.Id);
+
+        builder.Property(d => d.CurrentMatchPercentage).IsRequired();
+        builder.Property(d => d.TargetMatchPercentage).IsRequired();
+        builder.Property(d => d.MatchBreakdown).IsRequired().HasMaxLength(4000); // JSON
+        builder.Property(d => d.GapAnalysis).IsRequired().HasMaxLength(4000); // JSON
+        builder.Property(d => d.Recommendations).IsRequired().HasMaxLength(4000); // JSON
+        builder.Property(d => d.LastCalculatedAt).IsRequired();
+        builder.Property(d => d.NextRecalculateAt).IsRequired();
+
+        builder.HasOne(d => d.User)
+            .WithMany(u => u.DreamCompanyMatches)
+            .HasForeignKey(d => d.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(d => d.DreamCompany)
+            .WithOne(c => c.DreamCompanyMatch)
+            .HasForeignKey<DreamCompanyMatch>(d => d.DreamCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(d => d.UserId);
+        builder.HasIndex(d => d.DreamCompanyId).IsUnique();
+        builder.HasIndex(d => d.CurrentMatchPercentage);
+    }
+}
+
+/// <summary>
+/// Configuration for OpportunityMatch entity
+/// USP #5: Opportunity Radar
+/// </summary>
+public class OpportunityMatchConfiguration : IEntityTypeConfiguration<OpportunityMatch>
+{
+    public void Configure(EntityTypeBuilder<OpportunityMatch> builder)
+    {
+        builder.ToTable("OpportunityMatches");
+        builder.HasKey(o => o.Id);
+
+        builder.Property(o => o.MatchPercentage).IsRequired();
+        builder.Property(o => o.DiscoveredAt).IsRequired();
+        builder.Property(o => o.NotificationSent).IsRequired();
+        builder.Property(o => o.ExplanationForMatch).IsRequired().HasMaxLength(2000);
+        builder.Property(o => o.MatchingFactors).IsRequired().HasMaxLength(2000); // JSON
+        builder.Property(o => o.MissingFactors).IsRequired().HasMaxLength(2000); // JSON
+        builder.Property(o => o.SkillsAlreadyHave).IsRequired();
+        builder.Property(o => o.SkillsToLearn).IsRequired();
+
+        builder.HasOne(o => o.User)
+            .WithMany(u => u.OpportunityMatches)
+            .HasForeignKey(o => o.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(o => o.JobListing)
+            .WithMany()
+            .HasForeignKey(o => o.JobListingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(o => o.DreamCompany)
+            .WithMany(c => c.OpportunityMatches)
+            .HasForeignKey(o => o.DreamCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(o => o.UserId);
+        builder.HasIndex(o => o.DreamCompanyId);
+        builder.HasIndex(o => o.DiscoveredAt);
+        builder.HasIndex(o => o.MatchPercentage);
+    }
+}
+
+/// <summary>
+/// Configuration for ReferralTarget entity
+/// USP #3: Referral Intelligence
+/// </summary>
+public class ReferralTargetConfiguration : IEntityTypeConfiguration<ReferralTarget>
+{
+    public void Configure(EntityTypeBuilder<ReferralTarget> builder)
+    {
+        builder.ToTable("ReferralTargets");
+        builder.HasKey(r => r.Id);
+
+        builder.Property(r => r.FullName).IsRequired().HasMaxLength(200);
+        builder.Property(r => r.Title).IsRequired().HasMaxLength(200);
+        builder.Property(r => r.Department).IsRequired().HasMaxLength(100);
+        builder.Property(r => r.LinkedInUrl).HasMaxLength(500);
+        builder.Property(r => r.Email).HasMaxLength(255);
+        builder.Property(r => r.PhoneNumber).HasMaxLength(20);
+        builder.Property(r => r.SimilarityScore).IsRequired();
+        builder.Property(r => r.BackgroundSimilarity).HasMaxLength(2000); // JSON
+        builder.Property(r => r.SuggestedOutreach).HasMaxLength(2000);
+        builder.Property(r => r.DraftMessage).HasMaxLength(5000);
+        builder.Property(r => r.Status).IsRequired();
+
+        builder.HasOne(r => r.User)
+            .WithMany(u => u.ReferralTargets)
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(r => r.DreamCompany)
+            .WithMany(c => c.ReferralTargets)
+            .HasForeignKey(r => r.DreamCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(r => r.UserId);
+        builder.HasIndex(r => r.DreamCompanyId);
+        builder.HasIndex(r => r.SimilarityScore);
+        builder.HasIndex(r => r.Status);
+    }
+}
+
+/// <summary>
+/// Configuration for SkillGapRecommendation entity
+/// USP #2: Skill ROI Engine
+/// </summary>
+public class SkillGapRecommendationConfiguration : IEntityTypeConfiguration<SkillGapRecommendation>
+{
+    public void Configure(EntityTypeBuilder<SkillGapRecommendation> builder)
+    {
+        builder.ToTable("SkillGapRecommendations");
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.RecommendedSkill).IsRequired().HasMaxLength(200);
+        builder.Property(s => s.Priority).IsRequired();
+        builder.Property(s => s.Reasoning).IsRequired().HasMaxLength(2000);
+        builder.Property(s => s.LearningResources).HasMaxLength(4000); // JSON
+        builder.Property(s => s.ProjectIdea).HasMaxLength(2000);
+        builder.Property(s => s.ImpactSummary).IsRequired().HasMaxLength(2000);
+        builder.Property(s => s.EstimatedHours).IsRequired();
+        builder.Property(s => s.ROIScore).IsRequired();
+        builder.Property(s => s.CreatedAt).IsRequired();
+
+        builder.HasOne(s => s.User)
+            .WithMany(u => u.SkillGapRecommendations)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.SkillGraph)
+            .WithMany(sg => sg.Recommendations)
+            .HasForeignKey(s => s.SkillGraphId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(s => s.DreamCompany)
+            .WithMany(c => c.SkillRecommendations)
+            .HasForeignKey(s => s.DreamCompanyId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(s => s.UserId);
+        builder.HasIndex(s => s.Priority);
+        builder.HasIndex(s => s.ROIScore);
+    }
+}
+
+/// <summary>
+/// Configuration for CareerProgress entity
+/// Tracks milestones and career journey
+/// </summary>
+public class CareerProgressConfiguration : IEntityTypeConfiguration<CareerProgress>
+{
+    public void Configure(EntityTypeBuilder<CareerProgress> builder)
+    {
+        builder.ToTable("CareerProgress");
+        builder.HasKey(c => c.Id);
+
+        builder.Property(c => c.CheckinDate).IsRequired();
+        builder.Property(c => c.MilestoneType).IsRequired();
+        builder.Property(c => c.MilestoneDescription).HasMaxLength(2000);
+        builder.Property(c => c.ImpactOnDreamCompanies).IsRequired();
+        builder.Property(c => c.Evidence).HasMaxLength(500);
+        builder.Property(c => c.SkillsUnlocked).HasMaxLength(2000); // JSON
+        builder.Property(c => c.IsPublic).IsRequired();
+
+        builder.HasOne(c => c.User)
+            .WithMany(u => u.CareerProgress)
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(c => c.DreamCompany)
+            .WithMany()
+            .HasForeignKey(c => c.RelatedDreamCompanyId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(c => c.UserId);
+        builder.HasIndex(c => c.CheckinDate);
+        builder.HasIndex(c => c.MilestoneType);
+    }
+}
+
+/// <summary>
+/// Updated configuration for InterviewDigestEntry entity
+/// Enhanced for Career OS with vector embeddings
+/// </summary>
+public class InterviewDigestEntryUpdatedConfiguration : IEntityTypeConfiguration<InterviewDigestEntry>
+{
+    public void Configure(EntityTypeBuilder<InterviewDigestEntry> builder)
+    {
+        builder.ToTable("InterviewDigestEntries");
+        builder.HasKey(i => i.Id);
+
+        builder.Property(i => i.Company).IsRequired().HasMaxLength(200);
+        builder.Property(i => i.SourceUrl).IsRequired().HasMaxLength(1000);
+        builder.Property(i => i.SourcePlatform).IsRequired().HasMaxLength(100);
+        builder.Property(i => i.OriginalTitle).HasMaxLength(500);
+        builder.Property(i => i.Snippet).HasMaxLength(5000);
+        builder.Property(i => i.LlmSummary).HasMaxLength(3000);
+        builder.Property(i => i.Role).HasMaxLength(200);
+        builder.Property(i => i.InterviewType).HasMaxLength(100);
+        builder.Property(i => i.Difficulty).HasMaxLength(50);
+        builder.Property(i => i.Topics).HasMaxLength(2000); // JSON
+        builder.Property(i => i.KeyTakeaways).HasMaxLength(3000); // JSON
+        builder.Property(i => i.Relevance).IsRequired();
+        builder.Property(i => i.Frequency);
+
+        builder.HasOne(i => i.User)
+            .WithMany(u => u.InterviewDigests)
+            .HasForeignKey(i => i.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(i => i.DreamCompany)
+            .WithMany(c => c.InterviewDigests)
+            .HasForeignKey(i => i.DreamCompanyId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(i => i.Company);
+        builder.HasIndex(i => i.PublishedDate);
+        builder.HasIndex(i => i.IncludedInDigest);
+        builder.HasIndex(i => i.Relevance);
+    }
+}
+

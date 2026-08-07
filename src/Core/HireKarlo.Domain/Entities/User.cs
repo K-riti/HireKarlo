@@ -57,6 +57,11 @@ public class User : BaseEntity
     public int AutomationApplicationsThisMonth { get; set; } = 0; // Track monthly count
     public string? AutomationHistory { get; set; } // JSON log of automation runs
 
+    // Career Operating System - Onboarding
+    public bool HasCompletedOnboarding { get; set; } = false;
+    public DateTime? OnboardingCompletedAt { get; set; }
+    public string? CareerGoalSummary { get; set; } // User's stated career goal/vision
+
     // Navigation properties
     public virtual ICollection<Resume> Resumes { get; set; } = new List<Resume>();
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
@@ -64,4 +69,14 @@ public class User : BaseEntity
     public virtual ICollection<DreamCompany> DreamCompanies { get; set; } = new List<DreamCompany>();
     public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
     public virtual ICollection<RoadmapItem> RoadmapItems { get; set; } = new List<RoadmapItem>();
+
+    // Career Operating System - New relationships
+    public virtual ICollection<SkillGraph> Skills { get; set; } = new List<SkillGraph>();
+    public virtual ICollection<DreamCompanyMatch> DreamCompanyMatches { get; set; } = new List<DreamCompanyMatch>();
+    public virtual ICollection<OpportunityMatch> OpportunityMatches { get; set; } = new List<OpportunityMatch>();
+    public virtual ICollection<ReferralTarget> ReferralTargets { get; set; } = new List<ReferralTarget>();
+    public virtual ICollection<InterviewDigestEntry> InterviewDigests { get; set; } = new List<InterviewDigestEntry>();
+    public virtual ICollection<SkillGapRecommendation> SkillGapRecommendations { get; set; } = new List<SkillGapRecommendation>();
+    public virtual ICollection<CareerProgress> CareerProgress { get; set; } = new List<CareerProgress>();
 }
+

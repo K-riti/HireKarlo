@@ -23,6 +23,14 @@ public class HireKarloDbContext : DbContext
     public DbSet<QuizAttempt> QuizAttempts => Set<QuizAttempt>();
     public DbSet<VectorDocument> VectorDocuments => Set<VectorDocument>();
 
+    // Career Operating System DbSets
+    public DbSet<SkillGraph> SkillGraphs => Set<SkillGraph>();
+    public DbSet<DreamCompanyMatch> DreamCompanyMatches => Set<DreamCompanyMatch>();
+    public DbSet<OpportunityMatch> OpportunityMatches => Set<OpportunityMatch>();
+    public DbSet<ReferralTarget> ReferralTargets => Set<ReferralTarget>();
+    public DbSet<SkillGapRecommendation> SkillGapRecommendations => Set<SkillGapRecommendation>();
+    public DbSet<CareerProgress> CareerProgress => Set<CareerProgress>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

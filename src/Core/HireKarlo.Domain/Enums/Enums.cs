@@ -69,3 +69,56 @@ public enum Priority
     High = 2,
     Critical = 3
 }
+
+/// <summary>
+/// Skill proficiency levels for the Career Operating System
+/// </summary>
+public enum SkillLevel
+{
+    Beginner = 0,
+    Intermediate = 1,
+    Advanced = 2,
+    Expert = 3
+}
+
+/// <summary>
+/// Categories for interview digest entries (RAG-based content)
+/// </summary>
+public enum DigestCategory
+{
+    Technical = 0,
+    Behavioral = 1,
+    SystemDesign = 2,
+    DataStructures = 3,
+    Algorithms = 4,
+    CodingProblem = 5,
+    CompanySpecific = 6,
+    Other = 7
+}
+
+/// <summary>
+/// Referral target status tracking
+/// </summary>
+public enum ReferralStatus
+{
+    NoAction = 0,
+    Contacted = 1,
+    Responded = 2,
+    Referred = 3,
+    Rejected = 4
+}
+
+/// <summary>
+/// Career milestone types for progress tracking
+/// </summary>
+public enum MilestoneType
+{
+    SkillAcquired = 0,
+    ProjectCompleted = 1,
+    CertificationEarned = 2,
+    InterviewScheduled = 3,
+    OfferReceived = 4,
+    ApplicationSubmitted = 5,
+    ReferralMade = 6,
+    Other = 7
+}
