@@ -155,10 +155,10 @@ public class ResumeParsingService : IResumeParsingService
         // For now, look for common patterns
         var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-        foreach (var line in lines)
+        for (int i = 0; i < lines.Length; i++)
         {
-            if (line.Contains("current", StringComparison.OrdinalIgnoreCase) ||
-                lines.IndexOf(line) < 10) // Assume role is mentioned early
+            var line = lines[i];
+            if (line.Contains("current", StringComparison.OrdinalIgnoreCase) || i < 10)
             {
                 var trimmed = line.Trim();
                 if (trimmed.Length > 5 && trimmed.Length < 100)
