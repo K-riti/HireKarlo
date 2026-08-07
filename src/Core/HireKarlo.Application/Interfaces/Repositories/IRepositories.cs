@@ -78,3 +78,45 @@ public interface IInterviewDigestEntryRepository : IRepository<InterviewDigestEn
     Task<IReadOnlyList<InterviewDigestEntry>> GetRecentAsync(int days = 7, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InterviewDigestEntry>> GetUndigestedEntriesAsync(int limit, CancellationToken cancellationToken = default);
 }
+
+// Phase 2 Career OS Repositories
+public interface ISkillGraphRepository : IRepository<SkillGraph>
+{
+    Task<IReadOnlyList<SkillGraph>> GetUserSkillsAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<SkillGraph?> GetSkillByNameAsync(Guid userId, string skillName, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SkillGraph>> GetSkillsByCategoryAsync(Guid userId, string category, CancellationToken cancellationToken = default);
+}
+
+public interface IDreamCompanyMatchRepository : IRepository<DreamCompanyMatch>
+{
+    Task<DreamCompanyMatch?> GetByCompanyAndUserAsync(Guid companyId, Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DreamCompanyMatch>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IOpportunityMatchRepository : IRepository<OpportunityMatch>
+{
+    Task<IReadOnlyList<OpportunityMatch>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OpportunityMatch>> GetByCompanyAndUserAsync(Guid companyId, Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OpportunityMatch>> GetTop10ByMatchPercentageAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IReferralTargetRepository : IRepository<ReferralTarget>
+{
+    Task<IReadOnlyList<ReferralTarget>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReferralTarget>> GetByCompanyAsync(Guid userId, Guid dreamCompanyId, CancellationToken cancellationToken = default);
+    Task<ReferralTarget?> GetByLinkedInUrlAsync(string linkedInUrl, CancellationToken cancellationToken = default);
+}
+
+public interface ISkillGapRecommendationRepository : IRepository<SkillGapRecommendation>
+{
+    Task<IReadOnlyList<SkillGapRecommendation>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SkillGapRecommendation>> GetByPriorityAsync(Guid userId, int priority, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SkillGapRecommendation>> GetForDreamCompanyAsync(Guid userId, Guid dreamCompanyId, CancellationToken cancellationToken = default);
+}
+
+public interface ICareerProgressRepository : IRepository<CareerProgress>
+{
+    Task<IReadOnlyList<CareerProgress>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CareerProgress>> GetByCompanyAsync(Guid userId, Guid dreamCompanyId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CareerProgress>> GetRecentMilestonesAsync(Guid userId, int days = 30, CancellationToken cancellationToken = default);
+}

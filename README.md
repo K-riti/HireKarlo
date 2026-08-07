@@ -387,6 +387,136 @@ The following were considered but are **intentionally excluded** from this proto
 
 ---
 
+## 🚀 PHASE 2: IMPLEMENTATION GUIDE (Career Operating System Core)
+
+### Overview
+Phase 1 created the **foundation** - domain entities, DTOs, service interfaces, and database schema. Phase 2 **implements the core business logic** that makes each of the 5 USPs work.
+
+### Phase 2 Priority (Implement in Order)
+
+#### **MUST-HAVE (Week 1-2)**
+1. **`ISkillGraphService`** → `SkillGraphService.cs` 
+   - Proficiency tracking (0.0-1.0), category classification, evidence attachment
+   - Phase 2A: Integrate HuggingFace embeddings
+
+2. **`IMatchPercentageService`** → `MatchPercentageService.cs`
+   - Extract skills from JDs, calculate weighted match %, identify gaps
+   - Phase 2A: Use Groq to intelligently parse job descriptions
+
+3. **`IOpportunityRadarService`** → `OpportunityRadarService.cs`
+   - Discover and rank opportunities, generate explanations
+   - Replaces naive auto-apply with intelligent surfacing
+
+4. **`ICareerDashboardService`** → `CareerDashboardService.cs`
+   - Orchestrate 3-step onboarding, generate "wow" dashboard
+   - Call Skills + Match services to build complete view
+
+5. **`IResumeParsingService`** (helper) → `ResumeParsingService.cs`
+   - Extract resume → skills, experience, education
+   - Phase 2A: Use Groq/Claude for intelligent parsing
+
+#### **NICE-TO-HAVE (Week 3)**
+6. **`IReferralIntelligenceService`** → `ReferralIntelligenceService.cs` (USP #3)
+7. **`IInterviewDigestService`** → `InterviewDigestService.cs` (USP #4)  
+8. **`ICareerProgressService`** → `CareerProgressService.cs`
+
+### Required Repositories
+Implement in `src/Infrastructure/HireKarlo.Persistence/Repositories/`:
+- `SkillGraphRepository` - skill persistence + queries
+- `DreamCompanyMatchRepository` - match % tracking
+- `OpportunityMatchRepository` - discovered opportunities
+- `ReferralTargetRepository` - referral contacts
+- `SkillGapRecommendationRepository` - skill ROI engine
+- `CareerProgressRepository` - milestone tracking
+
+### Required API Controller
+Create `src/Presentation/HireKarlo.Api/Controllers/CareerOsController.cs`:
+```csharp
+[ApiController]
+[Route("api/career-os")]
+[Authorize]
+public class CareerOsController : ControllerBase
+{
+    [HttpPost("resume/upload")]
+    public async Task<ActionResult<ResumeUploadResponse>> UploadResume([FromForm] IFormFile resume)
+
+    [HttpPost("dream-companies")]
+    public async Task<ActionResult> SetupDreamCompanies([FromBody] List<string> companyNames)
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<CareerDashboardResponse>> GetDashboard()
+
+    [HttpPost("skills")]
+    public async Task<ActionResult<SkillDto>> AddSkill([FromBody] AddSkillRequest request)
+
+    [HttpGet("opportunities")]
+    public async Task<ActionResult<List<OpportunityDto>>> DiscoverOpportunities(float minMatch = 0.6f)
+}
+```
+
+### DTO Mapping Reference
+Use these DTOs (in `src/Core/HireKarlo.Application/DTOs/CareerOS/`):
+
+| DTO | Key Properties |
+|-----|---|
+| `CareerDashboardResponse` | SkillProfile, DreamCompanies, TopOpportunities, RecommendedActions |
+| `UserSkillProfile` | TotalSkills, OverallProficiency, TopSkills, CurrentRole |
+| `DreamCompanyStatusDto` | CurrentMatch, TargetMatch, GapsToFill, DaysToReachTarget |
+| `GapDto` | Skill, Level, Impact, ROI, EstimatedHours, Priority |
+| `OpportunityDto` | CompanyName, JobTitle, MatchPercentage, Explanation, MatchingFactors |
+| `SkillToLearnDto` | Skill, Priority, Reasoning, ImpactSummary, Resources, EstimatedHours |
+
+### DI Registration (Add to Program.cs)
+
+```csharp
+// Phase 2 Core Services
+services.AddScoped<ISkillGraphService, SkillGraphService>();
+services.AddScoped<IMatchPercentageService, MatchPercentageService>();
+services.AddScoped<IOpportunityRadarService, OpportunityRadarService>();
+services.AddScoped<ICareerDashboardService, CareerDashboardService>();
+services.AddScoped<IResumeParsingService, ResumeParsingService>();
+services.AddScoped<INotificationService, NotificationService>();
+
+// Phase 2 Repositories
+services.AddScoped<ISkillGraphRepository, SkillGraphRepository>();
+services.AddScoped<IDreamCompanyMatchRepository, DreamCompanyMatchRepository>();
+services.AddScoped<IOpportunityMatchRepository, OpportunityMatchRepository>();
+services.AddScoped<IReferralTargetRepository, ReferralTargetRepository>();
+services.AddScoped<ISkillGapRecommendationRepository, SkillGapRecommendationRepository>();
+services.AddScoped<ICareerProgressRepository, CareerProgressRepository>();
+
+// AI Clients (Phase 2A)
+services.AddHttpClient("Groq", client => {
+    client.BaseAddress = new Uri("https://api.groq.com");
+    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {config["Groq:Key"]}");
+});
+```
+
+### Phase 2A: AI Integration
+
+**Groq (Free LLM)**:
+- Parse job descriptions → extract required skills
+- Parse resumes → identify experience
+- Generate recommendations → "Learn X → +12% to Adobe"
+- Free: 30 req/min
+
+**HuggingFace (Free Embeddings)**:
+- Skill semantic matching
+- Use `sentence-transformers/all-minilm-l6-v2`
+
+### Phase 2 Success Criteria
+
+- ✅ All 5 core services implemented
+- ✅ All 6 repositories working
+- ✅ CareerOsController endpoints functional
+- ✅ Dashboard returns complete data
+- ✅ Opportunity radar finds 5+ opportunities
+- ✅ Build: 0 errors, 0 warnings
+- ✅ API tests passing (>80%)
+- ✅ Swagger docs complete
+
+---
+
 ## 📄 License
 
 Proprietary. All rights reserved.
