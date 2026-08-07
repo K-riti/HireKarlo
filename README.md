@@ -133,11 +133,11 @@ dotnet run --project src/Presentation/HireKarlo.Api
 - Referral intelligence
 - Interview prep aggregation
 
-### Phase 3: Extensions 📅 (May 2025)
+### Phase 3: Extensions 📅 
 - VS Code Extension
 - Chrome & Firefox Extensions
 
-### Phase 4: SDKs 📅 (June 2025)
+### Phase 4: SDKs 📅 
 - NuGet SDK (.NET)
 - NPM SDK (JavaScript)
 - CLI Tool
