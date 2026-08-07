@@ -5,12 +5,21 @@ This folder contains all release-related documentation for HireKarlo.
 ## 📋 Files
 
 ### [`ROADMAP.md`](ROADMAP.md)
-Phase-based version roadmap from v1.0 → v4.0 with:
+Phase-based version roadmap from v1.0 → v3.1 with:
 - Version timeline
-- Phase deliverables
+- Phase deliverables (Dream Company Intelligence, Opportunity Radar, Skill ROI, Referral Intelligence, Interview Digest)
 - Distribution channels (Docker, NuGet, npm, Extensions)
 - Deployment options
 - Success metrics
+
+### [`../docs/PRODUCT_VISION.md`](../docs/PRODUCT_VISION.md) ⭐ **START HERE**
+**For recruiters, hiring managers, and interviewers:**
+- The five questions HireKarlo solves
+- User journey walkthrough
+- Feature deep-dive with examples
+- Why HireKarlo exists
+- Competitive advantages
+- Resume description for job applications
 
 ### [`QUICK_START_RELEASE.md`](QUICK_START_RELEASE.md)
 4-minute guide to complete GitHub release:
