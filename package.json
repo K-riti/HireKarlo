@@ -1,0 +1,77 @@
+{
+  "name": "@hirekarlo/sdk",
+  "version": "2.0.0",
+  "description": "AI Career Copilot SDK - Available as extension, NPM package, and API client",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./extension": "./dist/extensions/index.js",
+    "./career-engine": "./dist/career-engine/index.js",
+    "./localization": "./dist/localization/index.js"
+  },
+  "scripts": {
+    "build": "tsc && webpack",
+    "build:extension:vscode": "webpack --config webpack.vscode.js",
+    "build:extension:chrome": "webpack --config webpack.chrome.js",
+    "build:extension:firefox": "webpack --config webpack.firefox.js",
+    "build:npm": "tsc && webpack --config webpack.npm.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "package:npm": "npm pack",
+    "package:docker": "docker build -t hirekarlo/api:latest .",
+    "publish:npm": "npm publish --access public",
+    "publish:docker": "docker push hirekarlo/api:latest",
+    "publish:extension:vscode": "vsce publish",
+    "publish:extension:chrome": "chrome-webstore-upload",
+    "publish:extension:firefox": "web-ext submit"
+  },
+  "keywords": [
+    "career",
+    "job-search",
+    "resume",
+    "ai",
+    "extension",
+    "chrome",
+    "firefox",
+    "vs-code",
+    "sdk"
+  ],
+  "author": "HireKarlo Contributors",
+  "license": "Proprietary",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/K-riti/HireKarlo"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "axios": "^1.6.0",
+    "crypto-js": "^4.1.1",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.0.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

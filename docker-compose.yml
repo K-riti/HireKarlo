@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: hirekarlo-db
+    environment:
+      POSTGRES_DB: hirekarlo
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # HireKarlo API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hirekarlo-api
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ENVIRONMENT:-Production}
+      Database__ConnectionString: "Host=postgres;Port=5432;Database=hirekarlo;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}"
+      Groq__ApiKey: ${GROQ_API_KEY}
+      Groq__ModelId: "llama-3.3-70b-versatile"
+      HuggingFace__ApiKey: ${HUGGINGFACE_API_KEY}
+      HuggingFace__Model: "sentence-transformers/all-minilm-l6-v2"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER:-HireKarlo}
+      Jwt__Audience: ${JWT_AUDIENCE:-HireKarlo}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis Cache (optional, for scaling)
+  redis:
+    image: redis:7-alpine
+    container_name: hirekarlo-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    profiles:
+      - cache
+
+  # pgAdmin for Database Management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hirekarlo-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@hirekarlo.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: hirekarlo-network
